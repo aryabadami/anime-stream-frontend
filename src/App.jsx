@@ -2084,7 +2084,7 @@ function App() {
 
   return (
     <ErrorBoundary>
-    <HashRouter basename={import.meta.env.BASE_URL}>
+    <HashRouter>
       <Routes>
         <Route path="/" element={<Home />} />
       <Route path="/anime/:id" element={<AnimePage />} />
