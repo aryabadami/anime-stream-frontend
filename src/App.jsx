@@ -724,20 +724,6 @@ function Home() {
     setWatchlist(saved)
   }, [])
 
-  const demoAnime = [
-    {
-      _id: "jjk-demo",
-      title: "Jujutsu Kaisen",
-      description: "Sorcerers fight cursed spirits threatening humanity.",
-      coverImage: "https://cdn.myanimelist.net/images/anime/1171/109222.jpg"
-    },
-    {
-      _id: "mha-demo",
-      title: "My Hero Academia",
-      description: "A powerless boy enrolls in a prestigious hero academy.",
-      coverImage: "https://cdn.myanimelist.net/images/anime/10/78745.jpg"
-    }
-  ]
 
   useEffect(() => {
     fetch(`${API}/api/anime`)
@@ -747,12 +733,12 @@ function Home() {
         setLoading(false)
       })
       .catch(() => {
-        setAnimeList(demoAnime)
+        setAnimeList([])
         setLoading(false)
       })
   }, [])
 
-  const allAnime = animeList.length ? animeList : demoAnime
+  const allAnime = animeList
 
   // BRICK 26 - genre filter logic
   const filteredAnime = React.useMemo(() => {
