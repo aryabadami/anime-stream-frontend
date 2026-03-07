@@ -1,30 +1,407 @@
+// Skeleton loader animation style for Brick 55
+const skeletonStyle = document.createElement("style")
+skeletonStyle.innerHTML = `
+@keyframes pulse {
+  0% { opacity: 0.5 }
+  50% { opacity: 1 }
+  100% { opacity: 0.5 }
+}`
+document.head.appendChild(skeletonStyle)
+// BRICK 57 - default SEO title
+document.title = "Anime Stream | Watch Anime Online"
+import React, { useEffect, useState } from "react"
+// BRICK 59 - production API endpoint support
+const API = import.meta.env.VITE_API_URL || "http://localhost:5001"
+
+import { HashRouter, Routes, Route, Link, useParams, useNavigate } from "react-router-dom"
+
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+
+  componentDidCatch(error, info) {
+    console.error("UI Crash:", error, info)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div
+          style={{
+            background: "#050505",
+            color: "#39ff14",
+            height: "100vh",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            flexDirection: "column"
+          }}
+        >
+          <h1>Something went wrong</h1>
+
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              marginTop: "20px",
+              padding: "10px 18px",
+              background: "#39ff14",
+              border: "none",
+              fontWeight: "bold",
+              cursor: "pointer"
+            }}
+          >
+            Reload App
+          </button>
+        </div>
+      )
+    }
+
+    return this.props.children
+  }
+}
+
+// BRICK 21 - auth helper
+const getToken = () => localStorage.getItem("auth-token")
+
+const pageStyle = {
+  background: "#050505",
+  minHeight: "100vh",
+  color: "#39ff14",
+  display: "flex",
+  flexDirection: "column",
+  width: "100%",
+  margin: 0,
+  padding: 0,
+  overflowX: "hidden",
+  boxSizing: "border-box"
+}
+
+const container = {
+  maxWidth: "1400px",
+  margin: "0 auto",
+  padding: "0 20px",
+  width: "100%",
+  boxSizing: "border-box"
+}
+
+const Footer = React.memo(function Footer() {
+  return (
+    <div
+      style={{
+        marginTop: "40px",
+        padding: "20px",
+        textAlign: "center",
+        borderTop: "1px solid #39ff14",
+        background: "#0a0a0a",
+        color: "#39ff14",
+        fontSize: "14px"
+      }}
+    >
+      Anime Stream • React + Node + Mongo • Built by Arya
+    </div>
+  )
+})
+
+const Navbar = React.memo(function Navbar() {
+  return (
+    <div
+      style={{
+        width: "100%",
+        padding: "12px 20px",
+        boxSizing: "border-box",
+        background: "#0a0a0a",
+        borderBottom: "1px solid #39ff14",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center"
+      }}
+    >
+      <Link
+        to="/"
+        style={{
+          color: "#39ff14",
+          fontSize: "22px",
+          fontWeight: "bold",
+          textDecoration: "none"
+        }}
+      >
+        ANIME STREAM
+      </Link>
+
+      <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
+        <span style={{ color: "#39ff14", opacity: 0.7 }}>
+          React · Node · Mongo
+        </span>
+
+        {getToken() ? (
+          <button
+            onClick={() => {
+              localStorage.removeItem("auth-token")
+              window.location.reload()
+            }}
+            style={{
+              background: "#39ff14",
+              border: "none",
+              padding: "6px 10px",
+              cursor: "pointer",
+              fontWeight: "bold"
+            }}
+          >
+            Logout
+          </button>
+        ) : (
+          <Link
+            to="/login"
+            style={{
+              color: "#39ff14",
+              textDecoration: "none",
+              fontWeight: "bold"
+            }}
+          >
+            Login
+          </Link>
+        )}
+      </div>
+    </div>
+  )
+})
+
+function AdminLogin() {
+  const [password, setPassword] = useState("")
+  const navigate = useNavigate()
+
+  const handleLogin = (e) => {
+    e.preventDefault()
+
+    if (password === "admin123") {
+      localStorage.setItem("admin-auth", "true")
+      navigate("/admin")
+    } else {
+      alert("Wrong admin password")
+    }
+  }
+
+  return (
+    <div style={pageStyle}>
+      <Navbar />
+      <h1 style={{ marginTop: "40px" }}>Admin Login</h1>
+
+      <form
+        onSubmit={handleLogin}
+        style={{
+  width: "300px",
+  display: "flex",
+  flexDirection: "column",
+  gap: "15px",
+  marginTop: "20px",
+  marginLeft: "auto",
+  marginRight: "auto"
+}}
+      >
+        <input
+          type="password"
+          placeholder="Admin Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          style={{ padding: "10px" }}
+        />
+
+        <button
+          type="submit"
+          style={{
+            padding: "10px",
+            background: "#39ff14",
+            border: "none",
+            fontWeight: "bold",
+            cursor: "pointer"
+          }}
+        >
+          Login
+        </button>
+      </form>
+      <Footer />
+    </div>
+  )
+}
+
+function AuthPage() {
+  const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
+  const [mode, setMode] = useState("login")
+  const navigate = useNavigate()
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+
+    try {
+      const endpoint = mode === "signup" ? "/api/auth/register" : "/api/auth/login"
+
+      const res = await fetch(`${API}${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        alert(data.message || "Authentication failed")
+        return
+      }
+
+      if (mode === "signup") {
+        alert("Account created. Please login.")
+        setMode("login")
+        setUsername("")
+        setPassword("")
+        return
+      }
+
+      localStorage.setItem("auth-token", data.token)
+      navigate("/")
+
+    } catch (err) {
+      console.error(err)
+      alert("Auth request failed")
+    }
+  }
+
+  return (
+    <div style={pageStyle}>
+      <Navbar />
+
+      <h1 style={{ marginTop: "40px" }}>
+        {mode === "login" ? "User Login" : "Create Account"}
+      </h1>
+
+      <form
+        onSubmit={handleSubmit}
+        style={{
+  width: "300px",
+  display: "flex",
+  flexDirection: "column",
+  gap: "15px",
+  marginTop: "20px",
+  marginLeft: "auto",
+  marginRight: "auto"
+}}
+      >
+        <input
+          type="text"
+          placeholder="Username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          style={{ padding: "10px" }}
+        />
+
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          style={{ padding: "10px" }}
+        />
+
+        <button
+          type="submit"
+          style={{
+            padding: "10px",
+            background: "#39ff14",
+            border: "none",
+            fontWeight: "bold",
+            cursor: "pointer"
+          }}
+        >
+          {mode === "login" ? "Login" : "Sign Up"}
+        </button>
+      </form>
+
+      <p style={{ marginTop: "15px", cursor: "pointer" }}
+         onClick={() => setMode(mode === "login" ? "signup" : "login")}>
+        {mode === "login"
+          ? "Create an account"
+          : "Already have an account? Login"}
+      </p>
+      <Footer />
+    </div>
+  )
+}
+
 function AdminPage() {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [coverImage, setCoverImage] = useState("")
 
   const [animeId, setAnimeId] = useState("")
+  const [animeList, setAnimeList] = useState([])
   const [episodeTitle, setEpisodeTitle] = useState("")
   const [episodeNumber, setEpisodeNumber] = useState("")
   const [videoFile, setVideoFile] = useState(null)
+  const [videoUrl, setVideoUrl] = useState("")
+
+  // BRICK 17 - analytics state and effect
+  const [animeCount, setAnimeCount] = useState(0)
+  const [episodeCount, setEpisodeCount] = useState(0)
+
+  useEffect(() => {
+    const loadAnime = async () => {
+      try {
+        let res = await fetch(`${API}/api/anime`)
+
+        // fallback if wrong port
+        if (!res.ok) {
+          res = await fetch("http://localhost:5000/api/anime")
+        }
+
+        const data = await res.json()
+
+        if (Array.isArray(data)) {
+          setAnimeCount(data.length)
+          setAnimeList(data)
+        } else {
+          console.error("Anime API returned unexpected data:", data)
+          setAnimeList([])
+        }
+      } catch (err) {
+        console.error("Anime fetch failed:", err)
+        setAnimeList([])
+      }
+    }
+
+    const loadEpisodes = async () => {
+      try {
+        let res = await fetch(`${API}/api/episodes`)
+        if (!res.ok) {
+          res = await fetch("http://localhost:5000/api/episodes")
+        }
+        const data = await res.json()
+        if (Array.isArray(data)) setEpisodeCount(data.length)
+      } catch (err) {
+        console.error("Episode fetch failed:", err)
+      }
+    }
+
+    loadAnime()
+    loadEpisodes()
+  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
 
     try {
-      const res = await fetch("http://localhost:5001/api/anime", {
+      const res = await fetch(`${API}/api/anime`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          title,
-          description,
-          coverImage
-        })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, description, coverImage })
       })
 
-      const data = await res.json()
+      await res.json()
       alert("Anime uploaded successfully")
 
       setTitle("")
@@ -38,25 +415,55 @@ function AdminPage() {
 
   const handleEpisodeUpload = async (e) => {
     e.preventDefault()
+    if (!animeId) {
+      alert("Please select an anime before uploading the episode.")
+      return
+    }
 
+    // Always use FormData, compatible with multer backend
     const formData = new FormData()
     formData.append("anime", animeId)
+    formData.append("animeId", animeId)
     formData.append("title", episodeTitle)
     formData.append("episodeNumber", episodeNumber)
-    formData.append("video", videoFile)
+
+    // If a Cloud URL is provided, send it
+    if (videoUrl && videoUrl.trim() !== "") {
+      formData.append("videoUrl", videoUrl.trim())
+    }
+
+    // Optional local file upload
+    if (videoFile) {
+      formData.append("video", videoFile)
+    }
 
     try {
-      const res = await fetch("http://localhost:5001/api/episodes", {
+      const res = await fetch(`${API}/api/episodes`, {
         method: "POST",
         body: formData
       })
 
-      await res.json()
+      let data
+      let text
+      try {
+        data = await res.json()
+      } catch {
+        text = await res.text()
+      }
+
+      if (!res.ok) {
+        console.error("Upload failed raw response:", data || text)
+        alert("Episode upload failed:\n" + JSON.stringify(data || text))
+        return
+      }
+
+      console.log("Episode uploaded:", data)
       alert("Episode uploaded successfully")
 
       setEpisodeTitle("")
       setEpisodeNumber("")
       setVideoFile(null)
+      setVideoUrl("")
     } catch (err) {
       console.error(err)
       alert("Episode upload failed")
@@ -67,7 +474,69 @@ function AdminPage() {
     <div style={pageStyle}>
       <Navbar />
 
+      {/* BRICK 17 - analytics dashboard */}
+      <div style={{ marginTop: "20px", marginLeft: "40px" }}>
+        <h3>Total Anime: {animeCount}</h3>
+        <h3>Total Episodes: {episodeCount}</h3>
+      </div>
+
       <h1 style={{ marginTop: "40px" }}>Admin Dashboard</h1>
+
+      {/* BRICK 44 – Admin anime management section */}
+      <div style={{ marginTop: "30px", marginLeft: "40px" }}>
+        <h2>Manage Anime</h2>
+
+        {animeList.map(a => (
+          <div
+            key={a._id}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              maxWidth: "600px",
+              background: "#111",
+              padding: "10px",
+              marginTop: "10px",
+              border: "1px solid #39ff14",
+              borderRadius: "6px"
+            }}
+          >
+            <span>{a.title}</span>
+
+            <button
+              onClick={async () => {
+                if (!confirm("Delete this anime?")) return
+
+                try {
+                  const res = await fetch(`${API}/api/anime/${a._id}`, {
+                    method: "DELETE"
+                  })
+
+                  if (res.ok) {
+                    setAnimeList(animeList.filter(x => x._id !== a._id))
+                    setAnimeCount(prev => prev - 1)
+                  } else {
+                    alert("Delete failed")
+                  }
+                } catch (err) {
+                  console.error(err)
+                  alert("Delete failed")
+                }
+              }}
+              style={{
+                background: "#ff3b3b",
+                border: "none",
+                padding: "6px 10px",
+                cursor: "pointer",
+                color: "#fff",
+                fontWeight: "bold"
+              }}
+            >
+              Delete
+            </button>
+          </div>
+        ))}
+      </div>
 
       <form
         onSubmit={handleSubmit}
@@ -123,18 +592,26 @@ function AdminPage() {
         style={{
           marginTop: "20px",
           width: "400px",
+          marginLeft: "auto",
+          marginRight: "auto",
           display: "flex",
           flexDirection: "column",
           gap: "15px"
         }}
       >
-        <input
-          type="text"
-          placeholder="Anime ID"
+        <label style={{ fontWeight: "bold" }}>Select Anime:</label>
+        <select
           value={animeId}
           onChange={(e) => setAnimeId(e.target.value)}
-          style={{ padding: "10px" }}
-        />
+          style={{ padding: "10px", background: "#000", color: "#39ff14", border: "1px solid #39ff14" }}
+        >
+          <option value="">-- Select Anime --</option>
+          {animeList.map(anime => (
+            <option key={anime._id} value={anime._id}>
+              {anime.title}
+            </option>
+          ))}
+        </select>
 
         <input
           type="text"
@@ -158,6 +635,17 @@ function AdminPage() {
           onChange={(e) => setVideoFile(e.target.files[0])}
         />
 
+        <input
+          type="text"
+          placeholder="OR paste Cloud video URL (Cloudinary / CDN)"
+          value={videoUrl}
+          onChange={(e) => {
+            setVideoUrl(e.target.value)
+            setVideoFile(null) // ensure no file upload overrides the CDN URL
+          }}
+          style={{ padding: "10px" }}
+        />
+
         <button
           type="submit"
           style={{
@@ -171,91 +659,257 @@ function AdminPage() {
           Upload Episode Video
         </button>
       </form>
-    </div>
-  )
-}
-import { useEffect, useState } from "react"
-import { BrowserRouter, Routes, Route, Link, useParams } from "react-router-dom"
-
-const pageStyle = {
-  background: "#050505",
-  minHeight: "100vh",
-  color: "#39ff14",
-  display: "flex",
-  flexDirection: "column",
-  width: "100vw",
-  margin: 0,
-  padding: 0
-}
-
-function Navbar() {
-  return (
-    <div
-      style={{
-        width: "100%",
-        padding: "15px 40px",
-        background: "#0a0a0a",
-        borderBottom: "1px solid #39ff14",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center"
-      }}
-    >
-      <Link
-        to="/"
-        style={{
-          color: "#39ff14",
-          fontSize: "22px",
-          fontWeight: "bold",
-          textDecoration: "none"
-        }}
-      >
-        ANIME STREAM
-      </Link>
-
-      <span style={{ color: "#39ff14", opacity: 0.7 }}>
-        React · Node · Mongo
-      </span>
+      <Footer />
     </div>
   )
 }
 
 function Home() {
+  // Horizontal scroll helper for carousel rows
+  const scrollRow = (id, dir) => {
+    const el = document.getElementById(id)
+    if (!el) return
+    const amount = 320
+    el.scrollBy({ left: dir === 'left' ? -amount : amount, behavior: 'smooth' })
+  }
   const [animeList, setAnimeList] = useState([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
+  // BRICK 26 - genre filtering
+  const [genreFilter, setGenreFilter] = useState("All")
+  const [watchlist, setWatchlist] = useState([])
+
+  // BRICK 23 - hover preview state
+  const [hoveredAnime, setHoveredAnime] = useState(null)
+  const [hoverTimer, setHoverTimer] = useState(null)
+
+  const [continueWatching, setContinueWatching] = useState([])
+  const [episodesList, setEpisodesList] = useState([])
 
   useEffect(() => {
-    fetch("http://localhost:5001/api/anime")
+  const loadProgress = async () => {
+    try {
+      const token = localStorage.getItem("auth-token")
+
+      const res = await fetch(`${API}/api/progress`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+
+      const data = await res.json()
+
+      if (Array.isArray(data)) {
+        const ids = data.map(p => p.episodeId)
+        setContinueWatching(ids)
+      }
+    } catch (err) {
+      console.error("Progress fetch failed", err)
+      setContinueWatching([])
+    }
+  }
+
+  loadProgress()
+}, [])
+
+  useEffect(() => {
+    fetch(`${API}/api/episodes`)
       .then(res => res.json())
-      .then(data => setAnimeList(data))
+      .then(data => setEpisodesList(data))
+      .catch(() => setEpisodesList([]))
+  }, [])
+
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem("watchlist") || "[]")
+    setWatchlist(saved)
   }, [])
 
   const demoAnime = [
     {
-      _id: "jjk",
+      _id: "jjk-demo",
       title: "Jujutsu Kaisen",
       description: "Sorcerers fight cursed spirits threatening humanity.",
-      coverImage:
-        "https://cdn.myanimelist.net/images/anime/1171/109222.jpg"
+      coverImage: "https://cdn.myanimelist.net/images/anime/1171/109222.jpg"
     },
     {
-      _id: "mha",
+      _id: "mha-demo",
       title: "My Hero Academia",
       description: "A powerless boy enrolls in a prestigious hero academy.",
-      coverImage:
-        "https://cdn.myanimelist.net/images/anime/10/78745.jpg"
+      coverImage: "https://cdn.myanimelist.net/images/anime/10/78745.jpg"
     }
   ]
 
-  const allAnime = [...animeList, ...demoAnime]
-  const filteredAnime = allAnime.filter(a =>
-    a.title.toLowerCase().includes(search.toLowerCase())
-  )
+  useEffect(() => {
+    fetch(`${API}/api/anime`)
+      .then(res => res.json())
+      .then(data => {
+        setAnimeList(data)
+        setLoading(false)
+      })
+      .catch(() => {
+        setAnimeList(demoAnime)
+        setLoading(false)
+      })
+  }, [])
+
+  const allAnime = animeList.length ? animeList : demoAnime
+
+  // BRICK 26 - genre filter logic
+  const filteredAnime = React.useMemo(() => {
+    return allAnime.filter(a => {
+      const matchSearch = a.title.toLowerCase().includes(search.toLowerCase())
+      const matchGenre =
+        genreFilter === "All" || (a.genre && a.genre.includes(genreFilter))
+
+      return matchSearch && matchGenre
+    })
+  }, [allAnime, search, genreFilter])
 
   return (
     <div style={pageStyle}>
+      {loading && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            background: "#050505",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 9999
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              gap: "20px"
+            }}
+          >
+            {[1,2,3,4].map(i => (
+              <div
+                key={i}
+                style={{
+                  width: "260px",
+                  height: "320px",
+                  background: "#111",
+                  borderRadius: "10px",
+                  border: "1px solid #222",
+                  animation: "pulse 1.2s infinite"
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
       <Navbar />
-      <h2 style={{ marginLeft: "40px", marginTop: "20px" }}>Featured</h2>
+
+      <div
+        style={{
+          width: "100%",
+          height: "420px",
+          backgroundImage:
+            "url(https://cdn.myanimelist.net/images/anime/10/47347.jpg)",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          display: "flex",
+          alignItems: "center",
+          padding: "0px"
+        }}
+      >
+        <div>
+          <h1 style={{ fontSize: "50px", marginBottom: "10px" }}>
+            Attack on Titan
+          </h1>
+
+          <p style={{ maxWidth: "500px", marginBottom: "20px" }}>
+            Humanity fights for survival against gigantic Titans that threaten their existence.
+          </p>
+
+          <Link
+            to="/"
+            style={{
+              background: "#39ff14",
+              color: "#000",
+              padding: "12px 20px",
+              borderRadius: "6px",
+              textDecoration: "none",
+              fontWeight: "bold"
+            }}
+          >
+            ▶ Explore Anime
+          </Link>
+        </div>
+      </div>
+
+      {/* BRICK 18 - Watchlist Row */}
+      {watchlist.length > 0 && (
+        <>
+          <h2 style={{ ...container, paddingTop: "20px" }}>My Watchlist</h2>
+
+          <div
+            style={{
+              display: "flex",
+              gap: "25px",
+              overflowX: "auto",
+              padding: "20px 40px"
+            }}
+          >
+            {watchlist.map(anime => (
+              <Link key={"watch-"+anime._id} to={`/anime/${anime._id}`} style={{ textDecoration: "none" }}>
+                <div
+                  style={{
+                    width: "260px",
+                    border: "1px solid #39ff14",
+                    borderRadius: "10px",
+                    overflow: "hidden"
+                  }}
+                >
+                  <img loading="lazy" decoding="async"
+                    src={anime.coverImage}
+                    style={{ width: "100%", height: "320px", objectFit: "cover" }}
+                  />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* BRICK 16 - Popular Anime Row */}
+      <h2 style={{ ...container, paddingTop: "20px" }}>Popular Anime</h2>
+
+      <div
+        style={{
+          display: "flex",
+          gap: "25px",
+          overflowX: "auto",
+          padding: "20px 40px"
+        }}
+      >
+        {filteredAnime.slice(0,4).map(anime => (
+          <Link key={"pop-"+anime._id} to={`/anime/${anime._id}`} style={{ textDecoration: "none" }}>
+            <div
+              style={{
+                width: "260px",
+                border: "1px solid #39ff14",
+                borderRadius: "10px",
+                overflow: "hidden"
+              }}
+            >
+              <img loading="lazy" decoding="async"
+                src={anime.coverImage}
+                style={{ width: "100%", height: "320px", objectFit: "cover" }}
+              />
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      <h2 style={{ ...container, paddingTop: "20px" }}>Featured</h2>
+
       <div style={{ width: "100%", padding: "20px 40px" }}>
         <input
           type="text"
@@ -271,128 +925,413 @@ function Home() {
             color: "#39ff14"
           }}
         />
-      </div>
-      <div
-        style={{
-          width: "100%",
-          height: "420px",
-          backgroundImage:
-            "url(https://cdn.myanimelist.net/images/anime/10/47347.jpg)",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          display: "flex",
-          alignItems: "center",
-          padding: "60px"
-        }}
-      >
-        <div>
-          <h1 style={{ fontSize: "50px", marginBottom: "10px" }}>
-            Attack on Titan
-          </h1>
-
-          <p style={{ maxWidth: "500px", marginBottom: "20px" }}>
-            Humanity fights for survival against gigantic Titans that threaten their existence.
-          </p>
-
-          <Link
-            to={`/anime/${animeList[0]?._id || ""}`}
-            style={{
-              background: "#39ff14",
-              color: "#000",
-              padding: "12px 20px",
-              borderRadius: "6px",
-              textDecoration: "none",
-              fontWeight: "bold"
-            }}
-          >
-            ▶ Watch Now
-          </Link>
+        {/* BRICK 26 - genre buttons */}
+        <div style={{ marginTop: "10px", display: "flex", gap: "10px" }}>
+          {["All", "Action", "Comedy", "Romance", "Fantasy", "Shonen"].map(g => (
+            <button
+              key={g}
+              onClick={() => setGenreFilter(g)}
+              style={{
+                padding: "6px 10px",
+                background: genreFilter === g ? "#39ff14" : "#000",
+                color: genreFilter === g ? "#000" : "#39ff14",
+                border: "1px solid #39ff14",
+                cursor: "pointer"
+              }}
+            >
+              {g}
+            </button>
+          ))}
         </div>
       </div>
 
-      <h2 style={{ marginLeft: "40px", marginTop: "20px" }}>Trending Anime</h2>
+      {continueWatching.length > 0 && (
+        <>
+          <h2 style={{ ...container, paddingTop: "20px" }}>Continue Watching</h2>
+
+          <div
+            style={{
+              display: "flex",
+              gap: "20px",
+              overflowX: "auto",
+              padding: "20px 40px"
+            }}
+          >
+            {continueWatching.map(id => (
+              <Link key={id} to={`/watch/${id}`} style={{ textDecoration: "none" }}>
+                <div
+                  style={{
+                    width: "260px",
+                    background: "#0f0f0f",
+                    borderRadius: "10px",
+                    border: "1px solid #39ff14",
+                    padding: "10px"
+                  }}
+                >
+                  <img loading="lazy" decoding="async"
+                    src={
+                      animeList.find(a =>
+                        a._id === (
+                          episodesList.find(ep => ep._id === id)?.anime?._id ||
+                          episodesList.find(ep => ep._id === id)?.anime
+                        )
+                      )?.coverImage ||
+                      "https://cdn.myanimelist.net/images/anime/10/47347.jpg"
+                    }
+                    style={{ width: "100%", borderRadius: "6px" }}
+                  />
+
+                  <p style={{ marginTop: "10px", color: "#39ff14" }}>
+                    Resume Episode
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* BRICK 51 - Watch History */}
+      {JSON.parse(localStorage.getItem("watch-history") || "[]").length > 0 && (
+        <>
+          <h2 style={{ ...container, paddingTop: "20px" }}>Watch History</h2>
+
+          <div
+            style={{
+              display: "flex",
+              gap: "20px",
+              overflowX: "auto",
+              padding: "20px 40px"
+            }}
+          >
+            {JSON.parse(localStorage.getItem("watch-history") || "[]").map(id => (
+              <Link key={"history-" + id} to={`/watch/${id}`} style={{ textDecoration: "none" }}>
+                <div
+                  style={{
+                    width: "260px",
+                    background: "#0f0f0f",
+                    borderRadius: "10px",
+                    border: "1px solid #39ff14",
+                    padding: "10px"
+                  }}
+                >
+                  <img loading="lazy" decoding="async"
+                    src={
+                      animeList.find(a =>
+                        a._id === (
+                          episodesList.find(ep => ep._id === id)?.anime?._id ||
+                          episodesList.find(ep => ep._id === id)?.anime
+                        )
+                      )?.coverImage ||
+                      "https://cdn.myanimelist.net/images/anime/10/47347.jpg"
+                    }
+                    style={{ width: "100%", borderRadius: "6px" }}
+                  />
+
+                  <p style={{ marginTop: "10px", color: "#39ff14" }}>
+                    Watched Episode
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* BRICK 48 - Recently Added Episodes */}
+      <h2 style={{ ...container, paddingTop: "20px" }}>Recently Added</h2>
 
       <div
         style={{
-          marginTop: "40px",
           display: "flex",
-          flexWrap: "wrap",
-          justifyContent: "space-evenly",
-          gap: "30px",
-          width: "100%",
-          padding: "0 40px"
+          gap: "25px",
+          overflowX: "auto",
+          padding: "20px 40px"
         }}
       >
-        {filteredAnime.map(anime => (
-          <Link
-            key={anime._id}
-            to={`/anime/${anime._id}`}
-            style={{ textDecoration: "none" }}
-          >
-            <div
-              style={{
-                width: "260px",
-                background: "#0f0f0f",
-                borderRadius: "10px",
-                overflow: "hidden",
-                border: "1px solid #39ff14",
-                transition: "transform 0.2s, box-shadow 0.2s",
-                cursor: "pointer"
-              }}
-              onMouseEnter={(e)=>{
-                e.currentTarget.style.transform='scale(1.05)'
-                e.currentTarget.style.boxShadow='0 0 15px #39ff14'
-              }}
-              onMouseLeave={(e)=>{
-                e.currentTarget.style.transform='scale(1)'
-                e.currentTarget.style.boxShadow='none'
-              }}
-            >
-              <img
-                src={anime.coverImage || "https://cdn.myanimelist.net/images/anime/10/47347.jpg"}
-                alt={anime.title}
-                style={{
-                  width: "100%",
-                  height: "360px",
-                  objectFit: "cover"
-                }}
-              />
+        {episodesList.slice(-6).reverse().map(ep => {
+          const anime = animeList.find(a =>
+            a._id === (ep.anime?._id || ep.anime)
+          )
 
-              <div style={{ padding: "15px" }}>
-                <h3 style={{ color: "#39ff14" }}>{anime.title}</h3>
-                <div style={{ marginBottom: "8px" }}>
-                  <span
-                    style={{
-                      fontSize: "12px",
-                      background: "#39ff14",
-                      color: "#000",
-                      padding: "3px 8px",
-                      borderRadius: "4px",
-                      marginRight: "5px"
-                    }}
-                  >
-                    Action
-                  </span>
-                  <span
-                    style={{
-                      fontSize: "12px",
-                      background: "#39ff14",
-                      color: "#000",
-                      padding: "3px 8px",
-                      borderRadius: "4px"
-                    }}
-                  >
-                    Anime
-                  </span>
+          return (
+            <Link
+              key={"recent-" + ep._id}
+              to={`/watch/${ep._id}`}
+              style={{ textDecoration: "none" }}
+            >
+              <div
+                style={{
+                  width: "260px",
+                  border: "1px solid #39ff14",
+                  borderRadius: "10px",
+                  overflow: "hidden",
+                  background: "#0f0f0f"
+                }}
+              >
+                <img loading="lazy" decoding="async"
+                  src={anime?.coverImage || "https://cdn.myanimelist.net/images/anime/10/47347.jpg"}
+                  style={{
+                    width: "100%",
+                    height: "320px",
+                    objectFit: "cover"
+                  }}
+                />
+
+                <div style={{ padding: "10px" }}>
+                  <h4 style={{ color: "#39ff14" }}>
+                    {anime?.title || "Anime"}
+                  </h4>
+
+                  <p style={{ fontSize: "13px", color: "#9cff7a" }}>
+                    Episode {ep.episodeNumber}
+                  </p>
                 </div>
-                <p style={{ fontSize: "14px", color: "#9cff7a" }}>
-                  {anime.description}
-                </p>
               </div>
-            </div>
-          </Link>
-        ))}
+            </Link>
+          )
+        })}
       </div>
+
+      {/* BRICK 23 - Netflix style hover preview */}
+      <h2 style={{ ...container, paddingTop: "20px" }}>Trending Anime</h2>
+
+      <div style={{ position: "relative" }}>
+        <button
+          onClick={() => scrollRow('trending-row','left')}
+          style={{
+            position: "absolute",
+            left: "5px",
+            top: "45%",
+            zIndex: 10,
+            background: "#39ff14",
+            border: "none",
+            padding: "6px 10px",
+            cursor: "pointer",
+            fontWeight: "bold"
+          }}
+        >
+          ◀
+        </button>
+
+        <div
+          id="trending-row"
+          style={{
+            marginTop: "30px",
+            display: "flex",
+            flexDirection: "row",
+            gap: "25px",
+            overflowX: "auto",
+            padding: "20px 40px",
+            width: "100%",
+            scrollBehavior: "smooth"
+          }}
+        >
+          {filteredAnime.map(anime => (
+            <Link key={anime._id} to={`/anime/${anime._id}`} style={{ textDecoration: "none" }}>
+              <div
+                style={{
+                  width: "260px",
+                  background: "#0f0f0f",
+                  borderRadius: "10px",
+                  overflow: "hidden",
+                  border: "1px solid #39ff14",
+                  transition: "transform 0.25s ease, box-shadow 0.25s ease",
+                  cursor: "pointer"
+                }}
+                onMouseEnter={(e) => {
+  setHoveredAnime(anime._id)
+  e.currentTarget.style.transform = "scale(1.05)"
+  e.currentTarget.style.boxShadow = "0 0 15px #39ff14"
+}}
+
+                onMouseLeave={(e) => {
+  clearTimeout(hoverTimer)
+  setHoveredAnime(null)
+
+  e.currentTarget.style.transform = "scale(1)"
+  e.currentTarget.style.boxShadow = "none"
+}}               
+              >
+                <div style={{ position: "relative", width: "100%", height: "360px" }}>
+                  <img
+                    src={anime.coverImage || "https://cdn.myanimelist.net/images/anime/10/47347.jpg"}
+                    alt={anime.title}
+                    onError={(e) => {
+                      e.target.src = "https://cdn.myanimelist.net/images/anime/10/47347.jpg"
+                    }}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      borderRadius: "0"
+                    }}
+                  />
+                  {/* BRICK 32: Netflix-style hover video preview */}
+                  {hoveredAnime === anime._id && anime.trailerUrl && (
+                    <video
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      preload="none"
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        borderRadius: "0",
+                        zIndex: 1
+                      }}
+                      onTimeUpdate={async (e) => {
+  try {
+    const token = localStorage.getItem("auth-token")
+
+    await fetch(`${API}/api/progress`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        episodeId: anime._id,
+        time: e.target.currentTime
+      })
+    })
+  } catch (err) {
+    console.error("Progress save failed", err)
+  }
+}}
+                    >
+                      <source src={anime.trailerUrl} type="video/mp4" />
+                    </video>
+                  )}
+                  {/* Cinematic gradient overlay and play button */}
+                  {hoveredAnime === anime._id && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        bottom: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "120px",
+                        background: "linear-gradient(to top, rgba(0,0,0,0.9), transparent)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        zIndex: 2
+                      }}
+                    >
+                      <div
+                        style={{
+                          background: "#39ff14",
+                          color: "#000",
+                          padding: "10px 18px",
+                          borderRadius: "6px",
+                          fontWeight: "bold",
+                          fontSize: "14px"
+                        }}
+                      >
+                        ▶ Play Preview
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {hoveredAnime === anime._id && (
+  <div
+    style={{
+      position: "absolute",
+      bottom: "0",
+      left: "0",
+      width: "100%",
+      background: "rgba(0,0,0,0.85)",
+      padding: "12px",
+      zIndex: 3
+    }}
+  >
+    <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
+      <span
+        style={{
+          background: "#39ff14",
+          color: "#000",
+          padding: "2px 6px",
+          fontSize: "12px",
+          fontWeight: "bold",
+          borderRadius: "3px"
+        }}
+      >
+        HD
+      </span>
+
+      <span
+        style={{
+          border: "1px solid #39ff14",
+          padding: "2px 6px",
+          fontSize: "12px"
+        }}
+      >
+        Anime
+      </span>
+
+      <span
+        style={{
+          border: "1px solid #39ff14",
+          padding: "2px 6px",
+          fontSize: "12px"
+        }}
+      >
+        Sub
+      </span>
+    </div>
+
+    <p
+      style={{
+        fontSize: "12px",
+        color: "#9cff7a",
+        margin: 0,
+        lineHeight: "1.4"
+      }}
+    >
+      {anime.description?.slice(0, 90)}...
+    </p>
+  </div>
+)}
+
+                <div style={{ padding: "15px" }}>
+                  <h3 style={{ color: "#39ff14" }}>{anime.title}</h3>
+                  <p style={{ fontSize: "12px", opacity: 0.7 }}>
+  Episodes Available
+</p>
+                  <p style={{ fontSize: "14px", color: "#9cff7a" }}>
+                    {anime.description}
+                  </p>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        <button
+          onClick={() => scrollRow('trending-row','right')}
+          style={{
+            position: "absolute",
+            right: "5px",
+            top: "45%",
+            zIndex: 10,
+            background: "#39ff14",
+            border: "none",
+            padding: "6px 10px",
+            cursor: "pointer",
+            fontWeight: "bold"
+          }}
+        >
+          ▶
+        </button>
+      </div>
+      <Footer/>
     </div>
   )
 }
@@ -400,121 +1339,770 @@ function Home() {
 function AnimePage() {
   const { id } = useParams()
   const [episodes, setEpisodes] = useState([])
+  const [anime, setAnime] = useState(null)
+  const [isSaved, setIsSaved] = useState(false)
+  // BRICK 27 - recommended anime
+  const [recommended, setRecommended] = useState([])
+  // BRICK 41 - comments system state
+  const [comments, setComments] = useState([])
+  const [newComment, setNewComment] = useState("")
+  // BRICK 42 - persistent rating system state
+  const [avgRating, setAvgRating] = useState(null)
+  // BRICK 57 - SEO meta tags
+  useEffect(() => {
+    if (anime) {
+      document.title = `${anime.title} | Anime Stream`
+
+      let meta = document.querySelector('meta[name="description"]')
+      if (!meta) {
+        meta = document.createElement('meta')
+        meta.name = 'description'
+        document.head.appendChild(meta)
+      }
+
+      meta.content = anime.description || 'Watch anime episodes online'
+    }
+  }, [anime])
+  const [userRating, setUserRating] = useState(0)
 
   useEffect(() => {
-    fetch(`http://localhost:5001/api/episodes/anime/${id}`)
+    fetch(`${API}/api/episodes`)
       .then(res => res.json())
-      .then(data => setEpisodes(data))
+      .then(data => {
+        const filtered = data.filter(ep => {
+          const ref = ep.anime?._id || ep.anime || ep.animeId
+          return String(ref) === String(id)
+        })
+
+        // Brick 20: always sort episodes by episode number
+        filtered.sort((a, b) => Number(a.episodeNumber) - Number(b.episodeNumber))
+
+        setEpisodes(filtered)
+      })
+      .catch(() => setEpisodes([]))
+
+    fetch(`${API}/api/anime`)
+      .then(res => res.json())
+      .then(data => {
+        const found = data.find(a => a._id === id)
+        if (found) setAnime(found)
+
+        // simple recommendation logic (other anime)
+        const others = data.filter(a => a._id !== id).slice(0,4)
+        setRecommended(others)
+      })
+
+    // BRICK 41 - fetch comments
+    fetch(`${API}/api/comments/${id}`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setComments(data)
+      })
+      .catch(() => setComments([]))
+
+    // BRICK 42 - fetch rating
+    fetch(`${API}/api/ratings/${id}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && typeof data.average === "number") {
+          setAvgRating(data.average)
+        }
+      })
+      .catch(() => {})
+
+    const saved = JSON.parse(localStorage.getItem("watchlist") || "[]")
+    if (saved.find(a => a._id === id)) {
+      setIsSaved(true)
+    }
   }, [id])
 
   return (
     <div style={pageStyle}>
       <Navbar />
 
-      <h1 style={{ marginTop: "40px" }}>Episodes</h1>
+      {anime && (
+        <div
+          style={{
+            width: "100%",
+            height: "460px",
+            backgroundImage: `url(${anime.coverImage})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            display: "flex",
+            alignItems: "flex-end",
+            padding: "40px"
+          }}
+        >
+          <div style={container}>
+            <h1 style={{ fontSize: "42px", marginBottom: "10px" }}>
+              {anime.title}
+            </h1>
+            <p style={{ maxWidth: "600px", color: "#9cff7a" }}>
+              {anime.description}
+            </p>
+            <button
+              onClick={() => {
+                if (!getToken()) {
+                  alert("Please login to use watchlist")
+                  return
+                }
+                const list = JSON.parse(localStorage.getItem("watchlist") || "[]")
 
+                if (isSaved) {
+                  const updated = list.filter(a => a._id !== anime._id)
+                  localStorage.setItem("watchlist", JSON.stringify(updated))
+                  setIsSaved(false)
+                } else {
+                  list.push(anime)
+                  localStorage.setItem("watchlist", JSON.stringify(list))
+                  setIsSaved(true)
+                }
+              }}
+              style={{
+                marginTop: "15px",
+                padding: "10px 16px",
+                background: "#39ff14",
+                border: "none",
+                cursor: "pointer",
+                fontWeight: "bold"
+              }}
+            >
+              {isSaved ? "✓ In Watchlist" : "+ Add to Watchlist"}
+            </button>
+            <div style={{ marginTop: "15px", display: "flex", alignItems: "center", gap: "10px" }}>
+  {[1,2,3,4,5].map(star => (
+    <span
+      key={star}
+      onClick={async () => {
+        setUserRating(star)
+
+        try {
+          const res = await fetch(`${API}/api/ratings/${id}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ rating: star })
+          })
+
+          const data = await res.json()
+
+          if (data && typeof data.average === "number") {
+            setAvgRating(data.average)
+          }
+        } catch (err) {
+          console.error(err)
+        }
+      }}
+      style={{
+        cursor: "pointer",
+        fontSize: "22px",
+        color: star <= (userRating || Math.round(avgRating || 0)) ? "#39ff14" : "#555"
+      }}
+    >
+      ★
+    </span>       
+  ))}
+
+  {avgRating !== null && (
+    <span style={{ marginLeft: "10px", color: "#9cff7a", fontSize: "14px" }}>
+      {avgRating.toFixed(1)} / 5
+    </span>
+  )}
+</div>
+          </div>
+        </div>
+      )}
+
+      <h2 style={{ ...container, paddingTop: "20px" }}>Episodes</h2>
+
+      {/* BRICK 25 - sidebar layout for episodes */}
       <div
         style={{
           marginTop: "30px",
-          width: "600px",
-          display: "flex",
-          flexDirection: "column",
+          width: "100%",
+          maxWidth: "1200px",
+          marginLeft: "auto",
+          marginRight: "auto",
+          display: "grid",
+          gridTemplateColumns: "1fr",
           gap: "15px"
         }}
       >
-        {episodes.length === 0 && <p>No episodes found.</p>}
-
         {episodes.map(ep => (
           <div
             key={ep._id}
             style={{
+              display: "flex",
+              gap: "15px",
               background: "#1a1a1a",
-              padding: "15px",
-              borderRadius: "8px"
+              padding: "12px",
+              borderRadius: "8px",
+              alignItems: "center"
             }}
           >
-            <img
-              src="https://i.ytimg.com/vi/MGRm4IzK1SQ/maxresdefault.jpg"
-              style={{ width: "100%", borderRadius: "6px", marginBottom: "10px" }}
-            />
-            <h3>
-              Episode {ep.episodeNumber}: {ep.title}
-            </h3>
             <div
-              style={{
-                height: "6px",
-                width: "100%",
-                background: "#333",
-                borderRadius: "4px",
-                marginTop: "6px",
-                marginBottom: "10px"
-              }}
+              style={{ width: "180px", height: "100px", position: "relative" }}
             >
-              <div
+              <img
+                src={ep.thumbnail || anime?.coverImage || "https://cdn.myanimelist.net/images/anime/10/47347.jpg"}
                 style={{
+                  width: "100%",
                   height: "100%",
-                  width: "40%",
-                  background: "#39ff14",
-                  borderRadius: "4px"
+                  objectFit: "cover",
+                  borderRadius: "6px"
                 }}
               />
+
+              <video
+                muted
+                loop
+                onMouseEnter={(e) => e.target.play()}
+                onMouseLeave={(e) => {
+                  e.target.pause()
+                  e.target.currentTime = 0
+                }}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  borderRadius: "6px",
+                  opacity: 0,
+                  transition: "opacity 0.2s"
+                }}
+                onMouseOver={(e) => (e.target.style.opacity = 1)}
+                onMouseOut={(e) => (e.target.style.opacity = 0)}
+              >
+                <source
+                  src={ep.videoUrl ? ep.videoUrl : `${API}/api/episodes/watch/${ep._id}`}
+                  type="video/mp4"
+                />
+              </video>
             </div>
 
-            <Link to={`/watch/${ep._id}`} style={{ color: "#39ff14" }}>
-              ▶ Watch Episode
-            </Link>
+            <div style={{ flex: 1 }}>
+              <h3 style={{ marginBottom: "6px" }}>
+                Episode {ep.episodeNumber}
+              </h3>
+
+              <div
+                style={{
+                  height: "6px",
+                  width: "100%",
+                  background: "#333",
+                  borderRadius: "4px",
+                  marginTop: "6px",
+                  marginBottom: "10px"
+                }}
+              >
+                <div
+                  style={{
+                    height: "100%",
+                    width: `${
+                      (parseFloat(localStorage.getItem("progress-" + ep._id) || 0) / 30)
+                    }%`,
+                    background: "#39ff14",
+                    borderRadius: "4px"
+                  }}
+                />
+              </div>
+
+              <Link
+                to={`/watch/${ep._id}`}
+                style={{
+                  color: "#39ff14",
+                  textDecoration: "none",
+                  fontWeight: "bold"
+                }}
+              >
+                ▶ Watch Episode
+              </Link>
+            </div>
           </div>
         ))}
       </div>
+
+      <div style={{ ...container, marginTop: "40px" }}>
+        <h3>Comments</h3>
+
+        <textarea
+          placeholder="Leave a comment about this anime..."
+          value={newComment}
+          onChange={(e) => setNewComment(e.target.value)}
+          style={{
+            width: "100%",
+            height: "80px",
+            padding: "10px",
+            background: "#000",
+            color: "#39ff14",
+            border: "1px solid #39ff14"
+          }}
+        />
+
+        <button
+          onClick={async () => {
+            if (!newComment.trim()) return
+
+            try {
+              const res = await fetch(`${API}/api/comments/${id}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text: newComment })
+              })
+
+              const data = await res.json()
+
+              if (res.ok) {
+                setComments([data, ...comments])
+                setNewComment("")
+              }
+            } catch (err) {
+              console.error(err)
+            }
+          }}
+          style={{
+            marginTop: "10px",
+            padding: "8px 14px",
+            background: "#39ff14",
+            border: "none",
+            fontWeight: "bold",
+            cursor: "pointer"
+          }}
+        >
+          Post Comment
+        </button>
+
+        <div style={{ marginTop: "20px", display: "flex", flexDirection: "column", gap: "10px" }}>
+          {comments.map((c, i) => (
+            <div key={i} style={{ background: "#111", padding: "10px", borderRadius: "6px" }}>
+              <span style={{ color: "#9cff7a", fontSize: "13px" }}>
+                {c.username || "User"}
+              </span>
+              <p style={{ margin: "5px 0", color: "#39ff14" }}>{c.text}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+
+      {/* BRICK 27 - Recommended Anime */}
+      {recommended.length > 0 && (
+        <>
+          <h2 style={{ ...container, paddingTop: "20px" }}>
+            You May Also Like
+          </h2>
+
+          <div
+            style={{
+              display: "flex",
+              gap: "25px",
+              overflowX: "auto",
+              padding: "20px 40px"
+            }}
+          >
+            {recommended.map(rec => (
+              <Link
+                key={rec._id}
+                to={`/anime/${rec._id}`}
+                style={{ textDecoration: "none" }}
+              >
+                <div
+                  style={{
+                    width: "220px",
+                    border: "1px solid #39ff14",
+                    borderRadius: "10px",
+                    overflow: "hidden",
+                    background: "#0f0f0f"
+                  }}
+                >
+                  <img
+                    src={rec.coverImage}
+                    style={{ width: "100%", height: "300px", objectFit: "cover" }}
+                  />
+
+                  <div style={{ padding: "10px" }}>
+                    <h4 style={{ color: "#39ff14" }}>{rec.title}</h4>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
+      <Footer/>
     </div>
   )
 }
 
 function WatchPage() {
   const { id } = useParams()
+  const [showSkip, setShowSkip] = useState(true)
+  const introTime = 60
+  const navigate = useNavigate()
+  const [episodesList, setEpisodesList] = useState([])
+  // BRICK 15: Add countdown state
+  const [videoRef, setVideoRef] = useState(null)
+  const [countdown, setCountdown] = useState(null)
+  const [showNextOverlay, setShowNextOverlay] = useState(false)
+const [nextEpisodeId, setNextEpisodeId] = useState(null)
+
+  // BRICK 24 - resume playback
+  const [savedProgress, setSavedProgress] = useState(null)
+
+  // BRICK 24 - load saved progress and setSavedProgress
+  useEffect(() => {
+    const saved = localStorage.getItem("progress-" + id)
+    if (saved) {
+      setSavedProgress(parseFloat(saved))
+    }
+
+    if (saved && videoRef) {
+      videoRef.currentTime = saved
+    }
+  }, [videoRef, id])
+  useEffect(() => {
+  fetch(`${API}/api/episodes`)
+    .then(res => res.json())
+    .then(data => setEpisodes(data))
+    .catch(() => setEpisodes([]))
+}, [])
+
+  // Fetch episode data to get videoUrl and all episodes for navigation
+  const [episodeData, setEpisodeData] = useState(null)
+
+  useEffect(() => {
+    fetch(`${API}/api/episodes`)
+      .then(res => res.json())
+      .then(data => {
+        // sort episodes by episode number
+        const sorted = [...data].sort((a,b)=>Number(a.episodeNumber)-Number(b.episodeNumber))
+        setEpisodesList(sorted)
+
+        const ep = sorted.find(e => e._id === id)
+        if (ep) setEpisodeData(ep)
+      })
+  }, [id])
+
+  const handleTimeUpdate = (e) => {
+    const time = e.target.currentTime
+    localStorage.setItem("progress-" + id, time)
+  }
+
+  // BRICK 15: Next Episode Countdown (BRICK 22: use episodesList and navigate)
+  const handleEnded = async () => {
+    try {
+      const index = episodesList.findIndex(e => e._id === id)
+      const next = episodesList[index + 1]
+      if (!next) return
+
+      let seconds = 5
+      setCountdown(seconds)
+
+      const timer = setInterval(() => {
+        seconds--
+        setCountdown(seconds)
+        if (seconds <= 0) {
+          clearInterval(timer)
+          navigate(`/watch/${next._id}`)
+        }
+      }, 1000)
+    } catch {}
+  }
 
   return (
-    <div style={pageStyle}>
-      <Navbar />
+   <div style={pageStyle}>
+  <Navbar />
 
-      <h1 style={{ marginTop: "40px" }}>Watching Episode</h1>
+  {/* BRICK 15: Next episode countdown UI */}
+  {countdown !== null && (
+    <div
+      style={{
+        position: "fixed",
+        bottom: "40px",
+        right: "40px",
+        background: "#000",
+        border: "1px solid #39ff14",
+        padding: "15px 20px",
+        borderRadius: "8px",
+        color: "#39ff14"
+      }}
+    >
+      Next episode in {countdown}...
+    </div>
+  )}
 
-      <video
-        controls
-        autoPlay
+  <h1 style={{ paddingTop: "40px" }}>Watching Episode</h1>
+
+  <select
+    value={id}
+    onChange={(e) => navigate(`/watch/${e.target.value}`)}
+    style={{
+      marginTop: "10px",
+      padding: "8px",
+      background: "#000",
+      color: "#39ff14",
+      border: "1px solid #39ff14"
+    }}
+  >
+    {episodesList?.map((ep) => (
+      <option key={ep._id} value={ep._id}>
+        Episode {ep.episodeNumber}
+      </option>
+    ))}
+  </select>
+
+  {/* BRICK 40 - Quick navigation buttons */}
+  <div
+    style={{
+      marginTop: "10px",
+      display: "flex",
+      gap: "10px"
+    }}
+  >
+    <button
+      onClick={() => {
+        const index = episodesList?.findIndex((e) => e._id === id)
+        if (index > 0) {
+          const prev = episodesList[index - 1]
+          navigate(`/watch/${prev._id}`)
+        }
+      }}
+      style={{
+        padding: "8px 14px",
+        background: "#000",
+        color: "#39ff14",
+        border: "1px solid #39ff14",
+        cursor: "pointer"
+      }}
+    >
+      ◀ Previous
+    </button>
+
+    <button
+      onClick={() => {
+        const index = episodesList?.findIndex((e) => e._id === id)
+        if (index !== -1 && episodesList[index + 1]) {
+          const next = episodesList[index + 1]
+          navigate(`/watch/${next._id}`)
+        }
+      }}
+      style={{
+        padding: "8px 14px",
+        background: "#39ff14",
+        color: "#000",
+        border: "none",
+        cursor: "pointer",
+        fontWeight: "bold"
+      }}
+    >
+      Next ▶
+    </button>
+  </div>
+
+  {/* BRICK 24 - resume controls */}
+  {savedProgress !== null && (
+    <div
+      style={{
+        marginTop: "10px",
+        display: "flex",
+        gap: "10px",
+        alignItems: "center"
+      }}
+    >
+      <button
+        onClick={() => {
+          if (videoRef?.current) {
+            videoRef.current.currentTime = savedProgress
+          }
+        }}
         style={{
-          width: "80%",
-          maxWidth: "1200px",
-          marginTop: "30px",
-          borderRadius: "10px"
+          padding: "8px 12px",
+          background: "#39ff14",
+          border: "none",
+          cursor: "pointer",
+          fontWeight: "bold"
         }}
       >
-        <source
-          src={`http://localhost:5001/api/episodes/watch/${id}`}
-          type="video/mp4"
-        />
-      </video>
+        Resume from {Math.floor(savedProgress)}s
+      </button>
 
-      <Link
-        to="/"
-        style={{ marginTop: "20px", color: "#39ff14", textDecoration: "none" }}
+      <button
+        onClick={() => {
+          localStorage.removeItem("progress-" + id)
+          if (videoRef?.current) {
+            videoRef.current.currentTime = 0
+          }
+          setSavedProgress(null)
+        }}
+        style={{
+          padding: "8px 12px",
+          background: "#222",
+          border: "1px solid #39ff14",
+          color: "#39ff14",
+          cursor: "pointer"
+        }}
       >
-        ← Back to Home
-      </Link>
+        Start from Beginning
+      </button>
     </div>
-  )
-}
+  )}
 
+  {/* BRICK 50 - Autoplay Toggle */}
+  <div
+    style={{
+      marginTop: "15px",
+      display: "flex",
+      gap: "10px",
+      alignItems: "center",
+      justifyContent: "center"
+    }}
+  >
+    <label style={{ color: "#39ff14", fontWeight: "bold" }}>
+      Autoplay Next Episode
+    </label>
+
+    <input
+      type="checkbox"
+      defaultChecked={localStorage.getItem("autoplay") !== "false"}
+      onChange={(e) => {
+        localStorage.setItem("autoplay", e.target.checked)
+      }}
+    />
+  </div>
+
+  <video
+  ref={(ref) => setVideoRef(ref)}
+  controls
+  autoPlay
+  tabIndex="0"
+  onKeyDown={(e) => {
+    const v = e.target
+
+    if (e.code === "Space") {
+      e.preventDefault()
+      if (v.paused) v.play()
+      else v.pause()
+    }
+
+    if (e.code === "ArrowRight") {
+      v.currentTime += 10
+    }
+
+    if (e.code === "ArrowLeft") {
+      v.currentTime -= 10
+    }
+
+    if (e.code === "ArrowUp") {
+      v.volume = Math.min(1, v.volume + 0.1)
+    }
+
+    if (e.code === "ArrowDown") {
+      v.volume = Math.max(0, v.volume - 0.1)
+    }
+  }}
+  preload="none"
+  playsInline
+    onTimeUpdate={(e) => {
+      if (e.target.currentTime > introTime) {
+        setShowSkip(false)
+      }
+    }}
+    onEnded={() => {
+      if (localStorage.getItem("autoplay") === "false") return
+
+      const currentIndex = episodesList?.findIndex(ep => ep._id === id)
+
+      if (currentIndex !== -1 && episodesList[currentIndex + 1]) {
+        const nextEpisode = episodesList[currentIndex + 1]
+        navigate(`/watch/${nextEpisode._id}`)
+      }
+    }}
+    style={{
+      width: "100%",
+      maxWidth: "1100px",
+      marginTop: "20px",
+      borderRadius: "10px",
+      marginLeft: "auto",
+      marginRight: "auto"
+    }}
+  >
+    <source
+      src={
+        episodeData?.videoUrl
+          ? episodeData.videoUrl
+          : `${API}/api/episodes/watch/${id}`
+      }
+      type="video/mp4"
+    />
+  </video>
+
+  <button
+    onClick={() => {
+      const index = episodesList?.findIndex(e => e._id === id)
+      if (index !== -1 && episodesList[index + 1]) {
+        const next = episodesList[index + 1]
+        navigate(`/watch/${next._id}`)
+      } else {
+        alert("No next episode available")
+      }
+    }}
+    style={{
+      marginTop: "20px",
+      padding: "10px 16px",
+      background: "#39ff14",
+      border: "none",
+      cursor: "pointer",
+      fontWeight: "bold"
+    }}
+  >
+    ▶ Next Episode
+  </button>
+
+  <Link
+    to="/"
+    style={{
+      marginTop: "20px",
+      color: "#39ff14",
+      textDecoration: "none"
+    }}
+  >
+    ← Back to Home
+  </Link>
+
+  <Footer />
+</div>
+)
+}
 function App() {
+
+  // Remove default browser white margin around the page
+  useEffect(() => {
+    document.body.style.margin = "0"
+    document.body.style.background = "#050505"
+  }, [])
+
   return (
-    <BrowserRouter>
+    <ErrorBoundary>
+    <HashRouter basename={import.meta.env.BASE_URL}>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/anime/:id" element={<AnimePage />} />
-        <Route path="/watch/:id" element={<WatchPage />} />
-        <Route path="/admin" element={<AdminPage />} />
+      <Route path="/anime/:id" element={<AnimePage />} />
+      <Route path="/watch/:id" element={<WatchPage />} />
+      <Route path="/admin" element={<AdminPage />} />
+      <Route path="/login" element={<AuthPage />} />
+        <Route
+          path="/admin"
+          element={
+            localStorage.getItem("admin-auth") === "true"
+              ? <AdminPage />
+              : <AdminLogin />
+          }
+        />
+        <Route path="/login" element={<AuthPage />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
+    </ErrorBoundary>
   )
 }
 
