@@ -1821,9 +1821,11 @@ function WatchPage() {
   // BRICK 15: Add countdown state
   const [videoRef, setVideoRef] = useState(null)
   const [isMiniPlayer, setIsMiniPlayer] = useState(false)
+  const [isTheater, setIsTheater] = useState(false)
   const [countdown, setCountdown] = useState(null)
   const [showNextOverlay, setShowNextOverlay] = useState(false)
   const [nextEpisodeId, setNextEpisodeId] = useState(null)
+  const [quality, setQuality] = useState("auto")
 
   // BRICK 24 - resume playback
   const [savedProgress, setSavedProgress] = useState(null)
@@ -1835,16 +1837,30 @@ function WatchPage() {
       setSavedProgress(parseFloat(saved))
     }
 
-    if (saved && videoRef) {
-      videoRef.currentTime = saved
-    }
+   if (saved && videoRef?.current) {
+  videoRef.current.currentTime = parseFloat(saved)
+}oRef.current.currentTime = parseFloat(saved)
   }, [videoRef, id])
+
   useEffect(() => {
     fetch(`${API}/api/episodes`)
       .then(res => res.json())
-      .then(data => setEpisodes(data))
-      .catch(() => setEpisodes([]))
+      .then(data => setEpisodesList(data))
+      .catch(() => setEpisodesList([]))
   }, [])
+useEffect(() => {
+  const savedVolume = localStorage.getItem("volume")
+  if (savedVolume && videoRef?.current) {
+  videoRef.current.volume = parseFloat(savedVolume)
+}
+}, [videoRef])
+
+useEffect(() => {
+  const savedSpeed = localStorage.getItem("speed")
+  if (savedSpeed && videoRef?.current) {
+  videoRef.current.playbackRate = parseFloat(savedSpeed)
+}
+}, [videoRef])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -1907,411 +1923,493 @@ function WatchPage() {
   }
 
   return (
-   <div style={pageStyle}>
-  <Navbar />
+    <div style={pageStyle}>
+      <Navbar />
+      <div style={{
+        maxWidth: "1200px",
+        margin: "0 auto",
+        width: "100%",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center"
+      }}>
+        {/* BRICK 15: Next episode countdown UI */}
+        {countdown !== null && (
+          <div
+            style={{
+              position: "fixed",
+              bottom: "40px",
+              right: "40px",
+              background: "#000",
+              border: "1px solid #39ff14",
+              padding: "15px 20px",
+              borderRadius: "8px",
+              color: "#39ff14"
+            }}
+          >
+            Next episode in {countdown}...
+          </div>
+        )}
 
-  {/* BRICK 15: Next episode countdown UI */}
-  {countdown !== null && (
-    <div
-      style={{
-        position: "fixed",
-        bottom: "40px",
-        right: "40px",
-        background: "#000",
-        border: "1px solid #39ff14",
-        padding: "15px 20px",
-        borderRadius: "8px",
-        color: "#39ff14"
-      }}
-    >
-      Next episode in {countdown}...
-    </div>
-  )}
+        <h1 style={{ paddingTop: "40px" }}>Watching Episode</h1>
 
-  <h1 style={{ paddingTop: "40px" }}>Watching Episode</h1>
+        <select
+          value={id}
+          onChange={(e) => navigate(`/watch/${e.target.value}`)}
+          style={{
+            marginTop: "10px",
+            padding: "8px",
+            background: "#000",
+            color: "#39ff14",
+            border: "1px solid #39ff14"
+          }}
+        >
+          {episodesList?.map((ep) => (
+            <option key={ep._id} value={ep._id}>
+              Episode {ep.episodeNumber}
+            </option>
+          ))}
+        </select>
 
-  <select
-    value={id}
-    onChange={(e) => navigate(`/watch/${e.target.value}`)}
-    style={{
-      marginTop: "10px",
-      padding: "8px",
-      background: "#000",
-      color: "#39ff14",
-      border: "1px solid #39ff14"
-    }}
-  >
-    {episodesList?.map((ep) => (
-      <option key={ep._id} value={ep._id}>
-        Episode {ep.episodeNumber}
-      </option>
-    ))}
-  </select>
+        {/* BRICK 40 - Quick navigation buttons */}
+        <div
+          style={{
+            marginTop: "10px",
+            display: "flex",
+            gap: "10px"
+          }}
+        >
+          <button
+            onClick={() => {
+              const index = episodesList?.findIndex((e) => e._id === id)
+              if (index > 0) {
+                const prev = episodesList[index - 1]
+                navigate(`/watch/${prev._id}`)
+              }
+            }}
+            style={{
+              padding: "8px 14px",
+              background: "#000",
+              color: "#39ff14",
+              border: "1px solid #39ff14",
+              cursor: "pointer"
+            }}
+          >
+            ◀ Previous
+          </button>
 
-  {/* BRICK 40 - Quick navigation buttons */}
-  <div
-    style={{
-      marginTop: "10px",
-      display: "flex",
-      gap: "10px"
-    }}
-  >
+          <button
+            onClick={() => {
+              const index = episodesList?.findIndex((e) => e._id === id)
+              if (index !== -1 && episodesList[index + 1]) {
+                const next = episodesList[index + 1]
+                navigate(`/watch/${next._id}`)
+              }
+            }}
+            style={{
+              padding: "8px 14px",
+              background: "#39ff14",
+              color: "#000",
+              border: "none",
+              cursor: "pointer",
+              fontWeight: "bold"
+            }}
+          >
+            Next ▶
+          </button>
+        </div>
+
+        {/* BRICK 24 - resume controls */}
+        {savedProgress !== null && (
+          <div
+            style={{
+              marginTop: "10px",
+              display: "flex",
+              gap: "10px",
+              alignItems: "center"
+            }}
+          >
+            <button
+              onClick={() => {
+                if (videoRef?.current) {
+                  videoRef.current.currentTime = savedProgress
+                }
+              }}
+              style={{
+                padding: "8px 12px",
+                background: "#39ff14",
+                border: "none",
+                cursor: "pointer",
+                fontWeight: "bold"
+              }}
+            >
+              Resume from {Math.floor(savedProgress)}s
+            </button>
+
+            <button
+              onClick={() => {
+                localStorage.removeItem("progress-" + id)
+                if (videoRef?.current) {
+                  videoRef.current.currentTime = 0
+                }
+                setSavedProgress(null)
+              }}
+              style={{
+                padding: "8px 12px",
+                background: "#222",
+                border: "1px solid #39ff14",
+                color: "#39ff14",
+                cursor: "pointer"
+              }}
+            >
+              Start from Beginning
+            </button>
+          </div>
+        )}
+
+        {/* BRICK 50 - Autoplay Toggle */}
+        <div
+          style={{
+            marginTop: "15px",
+            display: "flex",
+            gap: "10px",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "100%"
+          }}
+        >
+          <label style={{ color: "#39ff14", fontWeight: "bold" }}>
+            Autoplay Next Episode
+          </label>
+
+          <input
+            type="checkbox"
+            defaultChecked={localStorage.getItem("autoplay") !== "false"}
+            onChange={(e) => {
+              localStorage.setItem("autoplay", e.target.checked)
+            }}
+          />
+        </div>
+
+        <div
+          onMouseMove={() => {
+            setShowControls(true)
+
+            if (idleTimer) clearTimeout(idleTimer)
+
+            const timer = setTimeout(() => {
+              setShowControls(false)
+            }, 2000)
+
+            setIdleTimer(timer)
+          }}
+          style={{
+            position: "relative",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "100%",
+            transition: "opacity 0.3s"
+          }}
+        >
+          {/* Theater/Fullscreen controls */}
+          <div style={{ display: "flex", justifyContent: "center", gap: "10px", marginTop: "10px" }}>
+            <button
+              onClick={() => setIsTheater(prev => !prev)}
+              style={{
+                padding: "8px 14px",
+                background: "#39ff14",
+                border: "none",
+                fontWeight: "bold",
+                cursor: "pointer"
+              }}
+            >
+              {isTheater ? "Exit Theater" : "Theater Mode"}
+            </button>
+
+            <button
+              onClick={() => {
+                if (videoRef?.current?.requestFullscreen) {
+                  videoRef.current.requestFullscreen()
+                }
+              }}
+              style={{
+                padding: "8px 14px",
+                background: "#000",
+                color: "#39ff14",
+                border: "1px solid #39ff14",
+                cursor: "pointer"
+              }}
+            >
+              Fullscreen
+            </button>
+          </div>
+          <video
+            ref={(ref) => {
+              if (ref) setVideoRef(ref)
+            }}
+            controls
+            autoPlay
+            tabIndex="0"
+            onKeyDown={(e) => {
+              const v = e.target
+
+              if (e.code === "Space") {
+                e.preventDefault()
+                if (v.paused) v.play()
+                else v.pause()
+              }
+
+              if (e.code === "ArrowRight") {
+                v.currentTime += 10
+              }
+
+              if (e.code === "ArrowLeft") {
+                v.currentTime -= 10
+              }
+
+              if (e.code === "ArrowUp") {
+                v.volume = Math.min(1, v.volume + 0.1)
+              }
+
+              if (e.code === "ArrowDown") {
+                v.volume = Math.max(0, v.volume - 0.1)
+              }
+            }}
+            preload="none"
+            playsInline
+            onTimeUpdate={(e) => {
+              const time = e.target.currentTime
+
+              localStorage.setItem("progress-" + id, time)
+
+              if (time > introTime) {
+                setShowSkip(false)
+              }
+            }}
+            onEnded={() => {
+              if (localStorage.getItem("autoplay") === "false") return
+
+              const currentIndex = episodesList.findIndex(ep => ep._id === id)
+
+              if (currentIndex !== -1 && episodesList[currentIndex + 1]) {
+                const nextEpisode = episodesList[currentIndex + 1]
+                navigate(`/watch/${nextEpisode._id}`)
+              }
+            }}
+            style={{
+              width: isMiniPlayer ? "300px" : isTheater ? "100%" : "100%",
+              maxWidth: isMiniPlayer ? "300px" : isTheater ? "100%" : "1100px",
+              position: isMiniPlayer ? "fixed" : "relative",
+              bottom: isMiniPlayer ? "20px" : "auto",
+              right: isMiniPlayer ? "20px" : "auto",
+              zIndex: isMiniPlayer ? 999 : "auto",
+              marginTop: isMiniPlayer ? "0" : "20px",
+              borderRadius: isTheater ? "0px" : "12px",
+              boxShadow: isMiniPlayer
+                ? "0 10px 30px rgba(0,0,0,0.8)"
+                : "0 20px 60px rgba(0,0,0,0.8)",
+              marginLeft: "auto",
+              marginRight: "auto"
+            }}
+          >
+            <source
+              src={
+  quality === "auto"
+    ? (episodeData?.videoUrl || `${API}/api/episodes/watch/${id}`)
+    : `${API}/api/episodes/watch/${id}?quality=${quality}`
+}
+              type="video/mp4"
+            />
+          </video>
+
+          {/* Custom progress bar */}
+          <div
+            style={{
+              width: "100%",
+              maxWidth: "1100px",
+              marginTop: "10px",
+              marginLeft: "auto",
+              marginRight: "auto",
+              opacity: showControls ? 1 : 0,
+              transition: "opacity 0.3s"
+            }}
+          >
+            <input
+              type="range"
+              min="0"
+              max={videoRef?.duration || 100}
+              value={videoRef?.currentTime || 0}
+              onChange={(e) => {
+                if (videoRef) {
+                  videoRef.current.currentTime = e.target.value
+                }
+              }}
+              style={{
+                width: "100%",
+                accentColor: "#39ff14",
+                cursor: "pointer"
+              }}
+            />
+          </div>
+
+          {/* Volume slider */}
+          <div
+            style={{
+              marginTop: "10px",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              justifyContent: "center",
+              width: "100%",
+              opacity: showControls ? 1 : 0,
+              transition: "opacity 0.3s"
+            }}
+          >
+            <span style={{ color: "#39ff14" }}>🔊</span>
+
+            <input
+  type="range"
+  min="0"
+  max="1"
+  step="0.01"
+  value={videoRef?.volume || 1}
+  onChange={(e) => {
+    if (videoRef) {
+      videoRef.current.volume = e.target.value
+      localStorage.setItem("volume", e.target.value)
+    }
+  }}
+  style={{
+    width: "200px",
+    accentColor: "#39ff14",
+    cursor: "pointer"
+  }}
+/>
+          </div>
+          <div
+  style={{
+    marginTop: "10px",
+    display: "flex",
+    gap: "10px",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    opacity: showControls ? 1 : 0,
+    transition: "opacity 0.3s"
+  }}
+>
+  <span style={{ color: "#39ff14" }}>Speed:</span>
+
+  {[0.5, 1, 1.25, 1.5, 2].map(speed => (
     <button
+      key={speed}
       onClick={() => {
-        const index = episodesList?.findIndex((e) => e._id === id)
-        if (index > 0) {
-          const prev = episodesList[index - 1]
-          navigate(`/watch/${prev._id}`)
+        if (videoRef) {
+          videoRef.current.playbackRate = speed
+          localStorage.setItem("speed", speed)
         }
       }}
       style={{
-        padding: "8px 14px",
+        padding: "6px 10px",
         background: "#000",
         color: "#39ff14",
         border: "1px solid #39ff14",
         cursor: "pointer"
       }}
     >
-      ◀ Previous
+      {speed}x
     </button>
-
-    <button
-      onClick={() => {
-        const index = episodesList?.findIndex((e) => e._id === id)
-        if (index !== -1 && episodesList[index + 1]) {
-          const next = episodesList[index + 1]
-          navigate(`/watch/${next._id}`)
-        }
-      }}
-      style={{
-        padding: "8px 14px",
-        background: "#39ff14",
-        color: "#000",
-        border: "none",
-        cursor: "pointer",
-        fontWeight: "bold"
-      }}
-    >
-      Next ▶
-    </button>
-  </div>
-
-  {/* BRICK 24 - resume controls */}
-  {savedProgress !== null && (
-    <div
-      style={{
-        marginTop: "10px",
-        display: "flex",
-        gap: "10px",
-        alignItems: "center"
-      }}
-    >
-      <button
-        onClick={() => {
-          if (videoRef?.current) {
-            videoRef.current.currentTime = savedProgress
-          }
-        }}
-        style={{
-          padding: "8px 12px",
-          background: "#39ff14",
-          border: "none",
-          cursor: "pointer",
-          fontWeight: "bold"
-        }}
-      >
-        Resume from {Math.floor(savedProgress)}s
-      </button>
-
-      <button
-        onClick={() => {
-          localStorage.removeItem("progress-" + id)
-          if (videoRef?.current) {
-            videoRef.current.currentTime = 0
-          }
-          setSavedProgress(null)
-        }}
-        style={{
-          padding: "8px 12px",
-          background: "#222",
-          border: "1px solid #39ff14",
-          color: "#39ff14",
-          cursor: "pointer"
-        }}
-      >
-        Start from Beginning
-      </button>
-    </div>
-  )}
-
-  {/* BRICK 50 - Autoplay Toggle */}
-  <div
-    style={{
-      marginTop: "15px",
-      display: "flex",
-      gap: "10px",
-      alignItems: "center",
-      justifyContent: "center"
-    }}
-  >
-    <label style={{ color: "#39ff14", fontWeight: "bold" }}>
-      Autoplay Next Episode
-    </label>
-
-    <input
-      type="checkbox"
-      defaultChecked={localStorage.getItem("autoplay") !== "false"}
-      onChange={(e) => {
-        localStorage.setItem("autoplay", e.target.checked)
-      }}
-    />
-  </div>
-
-  <div
-    onMouseMove={() => {
-      setShowControls(true)
-
-      if (idleTimer) clearTimeout(idleTimer)
-
-      const timer = setTimeout(() => {
-        setShowControls(false)
-      }, 2000)
-
-      setIdleTimer(timer)
-    }}
-    style={{
-      position: "relative",
-      display: "flex",
-      justifyContent: "center",
-      transition: "opacity 0.3s"
-    }}
-  >
-    <video
-      ref={(ref) => {
-        if (ref) setVideoRef(ref)
-      }}
-      controls
-      autoPlay
-      tabIndex="0"
-      onKeyDown={(e) => {
-        const v = e.target
-
-        if (e.code === "Space") {
-          e.preventDefault()
-          if (v.paused) v.play()
-          else v.pause()
-        }
-
-        if (e.code === "ArrowRight") {
-          v.currentTime += 10
-        }
-
-        if (e.code === "ArrowLeft") {
-          v.currentTime -= 10
-        }
-
-        if (e.code === "ArrowUp") {
-          v.volume = Math.min(1, v.volume + 0.1)
-        }
-
-        if (e.code === "ArrowDown") {
-          v.volume = Math.max(0, v.volume - 0.1)
-        }
-      }}
-      preload="none"
-      playsInline
-      onTimeUpdate={(e) => {
-        const time = e.target.currentTime
-
-        localStorage.setItem("progress-" + id, time)
-
-        if (time > introTime) {
-          setShowSkip(false)
-        }
-      }}
-      onEnded={() => {
-        if (localStorage.getItem("autoplay") === "false") return
-
-        const currentIndex = episodesList?.findIndex(ep => ep._id === id)
-
-        if (currentIndex !== -1 && episodesList[currentIndex + 1]) {
-          const nextEpisode = episodesList[currentIndex + 1]
-          navigate(`/watch/${nextEpisode._id}`)
-        }
-      }}
-      style={{
-        width: isMiniPlayer ? "300px" : "100%",
-        maxWidth: isMiniPlayer ? "300px" : "1100px",
-        position: isMiniPlayer ? "fixed" : "relative",
-        bottom: isMiniPlayer ? "20px" : "auto",
-        right: isMiniPlayer ? "20px" : "auto",
-        zIndex: isMiniPlayer ? 999 : "auto",
-        marginTop: isMiniPlayer ? "0" : "20px",
-        borderRadius: "12px",
-        boxShadow: isMiniPlayer
-          ? "0 10px 30px rgba(0,0,0,0.8)"
-          : "0 20px 60px rgba(0,0,0,0.8)",
-        marginLeft: "auto",
-        marginRight: "auto"
-      }}
-    >
-      <source
-        src={
-          episodeData?.videoUrl
-            ? episodeData.videoUrl
-            : `${API}/api/episodes/watch/${id}`
-        }
-        type="video/mp4"
-      />
-    </video>
-
-    {/* Custom progress bar */}
-    <div
-      style={{
-        width: "100%",
-        maxWidth: "1100px",
-        marginTop: "10px",
-        opacity: showControls ? 1 : 0,
-        transition: "opacity 0.3s"
-      }}
-    >
-      <input
-        type="range"
-        min="0"
-        max={videoRef?.duration || 100}
-        value={videoRef?.currentTime || 0}
-        onChange={(e) => {
-          if (videoRef) {
-            videoRef.currentTime = e.target.value
-          }
-        }}
-        style={{
-          width: "100%",
-          accentColor: "#39ff14",
-          cursor: "pointer"
-        }}
-      />
-    </div>
-
-    {/* Volume slider */}
-    <div
-      style={{
-        marginTop: "10px",
-        display: "flex",
-        alignItems: "center",
-        gap: "10px",
-        justifyContent: "center",
-        opacity: showControls ? 1 : 0,
-        transition: "opacity 0.3s"
-      }}
-    >
-      <span style={{ color: "#39ff14" }}>🔊</span>
-
-      <input
-        type="range"
-        min="0"
-        max="1"
-        step="0.01"
-        defaultValue={videoRef?.volume || 1}
-        onChange={(e) => {
-          if (videoRef) {
-            videoRef.volume = e.target.value
-          }
-        }}
-        style={{
-          width: "200px",
-          accentColor: "#39ff14",
-          cursor: "pointer"
-        }}
-      />
-    </div>
-
-    {showSkip && showControls && (
-      <button
-        onClick={() => {
-          if (videoRef?.current) {
-            videoRef.current.currentTime = introTime
-            setShowSkip(false)
-          }
-        }}
-        style={{
-          position: "absolute",
-          bottom: "120px",
-          right: "60px",
-          padding: "10px 16px",
-          background: "linear-gradient(135deg, #39ff14, #00ffcc)",
-          border: "none",
-          borderRadius: "6px",
-          fontWeight: "bold",
-          cursor: "pointer",
-          zIndex: 10
-        }}
-      >
-        ⏭ Skip Intro
-      </button>
-    )}
-
-    <div
-      onClick={() => {
-        if (!videoRef?.current) return
-        if (videoRef.current.paused) videoRef.current.play()
-        else videoRef.current.pause()
-      }}
-      style={{
-        position: "absolute",
-        top: "50%",
-        left: "50%",
-        transform: "translate(-50%, -50%)",
-        background: "rgba(0,0,0,0.6)",
-        color: "#fff",
-        padding: "14px 18px",
-        borderRadius: "50%",
-        cursor: "pointer",
-        zIndex: 9,
-        opacity: showControls ? 1 : 0,
-        transition: "opacity 0.3s"
-      }}
-    >
-      ▶
-    </div>
-  </div>
-
-  <button
-    onClick={() => {
-      const index = episodesList?.findIndex(e => e._id === id)
-      if (index !== -1 && episodesList[index + 1]) {
-        const next = episodesList[index + 1]
-        navigate(`/watch/${next._id}`)
-      } else {
-        alert("No next episode available")
-      }
-    }}
-    style={{
-      marginTop: "20px",
-      padding: "10px 16px",
-      background: "#39ff14",
-      border: "none",
-      cursor: "pointer",
-      fontWeight: "bold"
-    }}
-  >
-    ▶ Next Episode
-  </button>
-
-  <Link
-    to="/"
-    style={{
-      marginTop: "20px",
-      color: "#39ff14",
-      textDecoration: "none"
-    }}
-  >
-    ← Back to Home
-  </Link>
-
-  <Footer />
+  ))}
 </div>
-)
+
+          {showSkip && showControls && (
+            <button
+              onClick={() => {
+                if (videoRef?.current) {
+                  videoRef.current.currentTime = introTime
+                  setShowSkip(false)
+                }
+              }}
+              style={{
+                position: "absolute",
+                bottom: "120px",
+                right: "60px",
+                padding: "10px 16px",
+                background: "linear-gradient(135deg, #39ff14, #00ffcc)",
+                border: "none",
+                borderRadius: "6px",
+                fontWeight: "bold",
+                cursor: "pointer",
+                zIndex: 10
+              }}
+            >
+              ⏭ Skip Intro
+            </button>
+          )}
+
+          <div
+            onClick={() => {
+              if (!videoRef?.current) return
+              if (videoRef.current.paused) videoRef.current.play()
+              else videoRef.current.pause()
+            }}
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              background: "rgba(0,0,0,0.6)",
+              color: "#fff",
+              padding: "14px 18px",
+              borderRadius: "50%",
+              cursor: "pointer",
+              zIndex: 9,
+              opacity: showControls ? 1 : 0,
+              transition: "opacity 0.3s"
+            }}
+          >
+            ▶
+          </div>
+        </div>
+
+        <button
+          onClick={() => {
+            const index = episodesList?.findIndex(e => e._id === id)
+            if (index !== -1 && episodesList[index + 1]) {
+              const next = episodesList[index + 1]
+              navigate(`/watch/${next._id}`)
+            } else {
+              alert("No next episode available")
+            }
+          }}
+          style={{
+            marginTop: "20px",
+            padding: "10px 16px",
+            background: "#39ff14",
+            border: "none",
+            cursor: "pointer",
+            fontWeight: "bold"
+          }}
+        >
+          ▶ Next Episode
+        </button>
+
+        <Link
+          to="/"
+          style={{
+            marginTop: "20px",
+            color: "#39ff14",
+            textDecoration: "none"
+          }}
+        >
+          ← Back to Home
+        </Link>
+      </div>
+      <Footer />
+    </div>
+  )
 }
 function App() {
 
@@ -2328,8 +2426,6 @@ function App() {
         <Route path="/" element={<Home />} />
       <Route path="/anime/:id" element={<AnimePage />} />
       <Route path="/watch/:id" element={<WatchPage />} />
-      <Route path="/admin" element={<AdminPage />} />
-      <Route path="/login" element={<AuthPage />} />
         <Route
           path="/admin"
           element={
