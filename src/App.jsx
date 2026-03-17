@@ -13,6 +13,17 @@ import React, { useEffect, useState } from "react"
 // BRICK 59 - production API endpoint support
 const API = import.meta.env.VITE_API_URL || "http://localhost:5001"
 
+const theme = {
+  bg: "#050505",
+  card: "#0f0f0f",
+  border: "#1f1f1f",
+  neon: "#39ff14",
+  text: "#e5ffe5",
+  subText: "#9cff7a",
+  accent: "#00ffcc"
+}
+
+
 import { HashRouter, Routes, Route, Link, useParams, useNavigate } from "react-router-dom"
 
 class ErrorBoundary extends React.Component {
@@ -115,8 +126,8 @@ const Navbar = React.memo(function Navbar() {
         width: "100%",
         padding: "12px 20px",
         boxSizing: "border-box",
-        background: "#0a0a0a",
-        borderBottom: "1px solid #39ff14",
+        background: "rgba(10,10,10,0.7)",
+        borderBottom: "1px solid rgba(255,255,255,0.05)",
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center"
@@ -125,7 +136,7 @@ const Navbar = React.memo(function Navbar() {
       <Link
         to="/"
         style={{
-          color: "#39ff14",
+          color: theme.neon,
           fontSize: "22px",
           fontWeight: "bold",
           textDecoration: "none"
@@ -135,7 +146,7 @@ const Navbar = React.memo(function Navbar() {
       </Link>
 
       <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
-        <span style={{ color: "#39ff14", opacity: 0.7 }}>
+        <span style={{ color: theme.neon, opacity: 0.7 }}>
           React · Node · Mongo
         </span>
 
@@ -146,7 +157,7 @@ const Navbar = React.memo(function Navbar() {
               window.location.reload()
             }}
             style={{
-              background: "#39ff14",
+              background: "linear-gradient(135deg, #39ff14, #00ffcc)",
               border: "none",
               padding: "6px 10px",
               cursor: "pointer",
@@ -159,7 +170,7 @@ const Navbar = React.memo(function Navbar() {
           <Link
             to="/login"
             style={{
-              color: "#39ff14",
+              color: theme.neon,
               textDecoration: "none",
               fontWeight: "bold"
             }}
@@ -209,14 +220,21 @@ function AdminLogin() {
           placeholder="Admin Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          style={{ padding: "10px" }}
+          style={{
+            padding: "10px",
+            borderRadius: "6px",
+            border: "1px solid rgba(255,255,255,0.1)",
+            background: "#0a0a0a",
+            color: theme.text,
+            outline: "none"
+          }}
         />
 
         <button
           type="submit"
           style={{
             padding: "10px",
-            background: "#39ff14",
+            background: "linear-gradient(135deg, #39ff14, #00ffcc)",
             border: "none",
             fontWeight: "bold",
             cursor: "pointer"
@@ -297,7 +315,14 @@ function AuthPage() {
           placeholder="Username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          style={{ padding: "10px" }}
+          style={{
+            padding: "10px",
+            borderRadius: "6px",
+            border: "1px solid rgba(255,255,255,0.1)",
+            background: "#0a0a0a",
+            color: theme.text,
+            outline: "none"
+          }}
         />
 
         <input
@@ -305,14 +330,21 @@ function AuthPage() {
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          style={{ padding: "10px" }}
+          style={{
+            padding: "10px",
+            borderRadius: "6px",
+            border: "1px solid rgba(255,255,255,0.1)",
+            background: "#0a0a0a",
+            color: theme.text,
+            outline: "none"
+          }}
         />
 
         <button
           type="submit"
           style={{
             padding: "10px",
-            background: "#39ff14",
+            background: "linear-gradient(135deg, #39ff14, #00ffcc)",
             border: "none",
             fontWeight: "bold",
             cursor: "pointer"
@@ -475,7 +507,7 @@ function AdminPage() {
       <Navbar />
 
       {/* BRICK 17 - analytics dashboard */}
-      <div style={{ marginTop: "20px", marginLeft: "40px" }}>
+      <div style={{ marginTop: "20px", margin: "0 auto" }}>
         <h3>Total Anime: {animeCount}</h3>
         <h3>Total Episodes: {episodeCount}</h3>
       </div>
@@ -483,7 +515,7 @@ function AdminPage() {
       <h1 style={{ marginTop: "40px" }}>Admin Dashboard</h1>
 
       {/* BRICK 44 – Admin anime management section */}
-      <div style={{ marginTop: "30px", marginLeft: "40px" }}>
+      <div style={{ marginTop: "30px", margin: "0 auto" }}>
         <h2>Manage Anime</h2>
 
         {animeList.map(a => (
@@ -553,14 +585,28 @@ function AdminPage() {
           placeholder="Anime Title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          style={{ padding: "10px" }}
+          style={{
+            padding: "10px",
+            borderRadius: "6px",
+            border: "1px solid rgba(255,255,255,0.1)",
+            background: "#0a0a0a",
+            color: theme.text,
+            outline: "none"
+          }}
         />
 
         <textarea
           placeholder="Description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          style={{ padding: "10px" }}
+          style={{
+            padding: "10px",
+            borderRadius: "6px",
+            border: "1px solid rgba(255,255,255,0.1)",
+            background: "#0a0a0a",
+            color: theme.text,
+            outline: "none"
+          }}
         />
 
         <input
@@ -568,14 +614,21 @@ function AdminPage() {
           placeholder="Poster Image URL"
           value={coverImage}
           onChange={(e) => setCoverImage(e.target.value)}
-          style={{ padding: "10px" }}
+          style={{
+            padding: "10px",
+            borderRadius: "6px",
+            border: "1px solid rgba(255,255,255,0.1)",
+            background: "#0a0a0a",
+            color: theme.text,
+            outline: "none"
+          }}
         />
 
         <button
           type="submit"
           style={{
             padding: "10px",
-            background: "#39ff14",
+            background: "linear-gradient(135deg, #39ff14, #00ffcc)",
             border: "none",
             fontWeight: "bold",
             cursor: "pointer"
@@ -603,7 +656,14 @@ function AdminPage() {
         <select
           value={animeId}
           onChange={(e) => setAnimeId(e.target.value)}
-          style={{ padding: "10px", background: "#000", color: "#39ff14", border: "1px solid #39ff14" }}
+          style={{
+            padding: "10px",
+            borderRadius: "6px",
+            border: "1px solid rgba(255,255,255,0.1)",
+            background: "#0a0a0a",
+            color: theme.neon,
+            outline: "none"
+          }}
         >
           <option value="">-- Select Anime --</option>
           {animeList.map(anime => (
@@ -618,7 +678,14 @@ function AdminPage() {
           placeholder="Episode Title"
           value={episodeTitle}
           onChange={(e) => setEpisodeTitle(e.target.value)}
-          style={{ padding: "10px" }}
+          style={{
+            padding: "10px",
+            borderRadius: "6px",
+            border: "1px solid rgba(255,255,255,0.1)",
+            background: "#0a0a0a",
+            color: theme.text,
+            outline: "none"
+          }}
         />
 
         <input
@@ -626,7 +693,14 @@ function AdminPage() {
           placeholder="Episode Number"
           value={episodeNumber}
           onChange={(e) => setEpisodeNumber(e.target.value)}
-          style={{ padding: "10px" }}
+          style={{
+            padding: "10px",
+            borderRadius: "6px",
+            border: "1px solid rgba(255,255,255,0.1)",
+            background: "#0a0a0a",
+            color: theme.text,
+            outline: "none"
+          }}
         />
 
         <input
@@ -643,14 +717,21 @@ function AdminPage() {
             setVideoUrl(e.target.value)
             setVideoFile(null) // ensure no file upload overrides the CDN URL
           }}
-          style={{ padding: "10px" }}
+          style={{
+            padding: "10px",
+            borderRadius: "6px",
+            border: "1px solid rgba(255,255,255,0.1)",
+            background: "#0a0a0a",
+            color: theme.text,
+            outline: "none"
+          }}
         />
 
         <button
           type="submit"
           style={{
             padding: "10px",
-            background: "#39ff14",
+            background: "linear-gradient(135deg, #39ff14, #00ffcc)",
             border: "none",
             fontWeight: "bold",
             cursor: "pointer"
@@ -797,7 +878,7 @@ function Home() {
           width: "100%",
           height: "420px",
           backgroundImage:
-            "url(https://cdn.myanimelist.net/images/anime/10/47347.jpg)",
+            "linear-gradient(to right, rgba(0,0,0,0.9), transparent), url(https://cdn.myanimelist.net/images/anime/10/47347.jpg)",
           backgroundSize: "cover",
           backgroundPosition: "center",
           display: "flex",
@@ -817,7 +898,7 @@ function Home() {
           <Link
             to="/"
             style={{
-              background: "#39ff14",
+              background: "linear-gradient(135deg, #39ff14, #00ffcc)",
               color: "#000",
               padding: "12px 20px",
               borderRadius: "6px",
@@ -1118,26 +1199,25 @@ function Home() {
               <div
                 style={{
                   width: "260px",
-                  background: "#0f0f0f",
-                  borderRadius: "10px",
+                  background: theme.card,
+                  borderRadius: "12px",
                   overflow: "hidden",
-                  border: "1px solid #39ff14",
-                  transition: "transform 0.25s ease, box-shadow 0.25s ease",
-                  cursor: "pointer"
+                  border: "1px solid rgba(255,255,255,0.05)",
+                  transition: "all 0.3s ease",
+                  cursor: "pointer",
+                  position: "relative"
                 }}
                 onMouseEnter={(e) => {
-  setHoveredAnime(anime._id)
-  e.currentTarget.style.transform = "scale(1.05)"
-  e.currentTarget.style.boxShadow = "0 0 15px #39ff14"
-}}
-
+                  setHoveredAnime(anime._id)
+                  e.currentTarget.style.transform = "translateY(-8px) scale(1.03)"
+                  e.currentTarget.style.boxShadow = "0 20px 40px rgba(0,0,0,0.6)"
+                }}
                 onMouseLeave={(e) => {
-  clearTimeout(hoverTimer)
-  setHoveredAnime(null)
-
-  e.currentTarget.style.transform = "scale(1)"
-  e.currentTarget.style.boxShadow = "none"
-}}               
+                  clearTimeout(hoverTimer)
+                  setHoveredAnime(null)
+                  e.currentTarget.style.transform = "translateY(0) scale(1)"
+                  e.currentTarget.style.boxShadow = "none"
+                }}               
               >
                 <div style={{ position: "relative", width: "100%", height: "360px" }}>
                   <img
@@ -1151,6 +1231,13 @@ function Home() {
                       height: "100%",
                       objectFit: "cover",
                       borderRadius: "0"
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      background: "linear-gradient(to top, rgba(0,0,0,0.8), transparent)"
                     }}
                   />
                   {/* BRICK 32: Netflix-style hover video preview */}
@@ -1211,14 +1298,14 @@ function Home() {
                       }}
                     >
                       <div
-                        style={{
-                          background: "#39ff14",
-                          color: "#000",
-                          padding: "10px 18px",
-                          borderRadius: "6px",
-                          fontWeight: "bold",
-                          fontSize: "14px"
-                        }}
+                      style={{
+                        background: theme.neon,
+                        color: "#000",
+                        padding: "10px 18px",
+                        borderRadius: "6px",
+                        fontWeight: "bold",
+                        fontSize: "14px"
+                      }}
                       >
                         ▶ Play Preview
                       </div>
@@ -1276,7 +1363,7 @@ function Home() {
     <p
       style={{
         fontSize: "12px",
-        color: "#9cff7a",
+        color: theme.subText,
         margin: 0,
         lineHeight: "1.4"
       }}
@@ -1287,11 +1374,11 @@ function Home() {
 )}
 
                 <div style={{ padding: "15px" }}>
-                  <h3 style={{ color: "#39ff14" }}>{anime.title}</h3>
+                  <h3 style={{ color: theme.neon }}>{anime.title}</h3>
                   <p style={{ fontSize: "12px", opacity: 0.7 }}>
-  Episodes Available
-</p>
-                  <p style={{ fontSize: "14px", color: "#9cff7a" }}>
+                    Episodes Available
+                  </p>
+                  <p style={{ fontSize: "14px", color: theme.subText }}>
                     {anime.description}
                   </p>
                 </div>
@@ -1307,7 +1394,7 @@ function Home() {
             right: "5px",
             top: "45%",
             zIndex: 10,
-            background: "#39ff14",
+            background: "linear-gradient(135deg, #39ff14, #00ffcc)",
             border: "none",
             padding: "6px 10px",
             cursor: "pointer",
@@ -1423,7 +1510,7 @@ function AnimePage() {
             <h1 style={{ fontSize: "42px", marginBottom: "10px" }}>
               {anime.title}
             </h1>
-            <p style={{ maxWidth: "600px", color: "#9cff7a" }}>
+            <p style={{ maxWidth: "600px", color: theme.subText }}>
               {anime.description}
             </p>
             <button
@@ -1447,7 +1534,7 @@ function AnimePage() {
               style={{
                 marginTop: "15px",
                 padding: "10px 16px",
-                background: "#39ff14",
+                background: "linear-gradient(135deg, #39ff14, #00ffcc)",
                 border: "none",
                 cursor: "pointer",
                 fontWeight: "bold"
@@ -1481,7 +1568,7 @@ function AnimePage() {
       style={{
         cursor: "pointer",
         fontSize: "22px",
-        color: star <= (userRating || Math.round(avgRating || 0)) ? "#39ff14" : "#555"
+        color: star <= (userRating || Math.round(avgRating || 0)) ? theme.neon : "#555"
       }}
     >
       ★
@@ -1489,7 +1576,7 @@ function AnimePage() {
   ))}
 
   {avgRating !== null && (
-    <span style={{ marginLeft: "10px", color: "#9cff7a", fontSize: "14px" }}>
+    <span style={{ marginLeft: "10px", color: theme.subText, fontSize: "14px" }}>
       {avgRating.toFixed(1)} / 5
     </span>
   )}
@@ -1597,7 +1684,7 @@ function AnimePage() {
               <Link
                 to={`/watch/${ep._id}`}
                 style={{
-                  color: "#39ff14",
+                  color: theme.neon,
                   textDecoration: "none",
                   fontWeight: "bold"
                 }}
@@ -1620,9 +1707,11 @@ function AnimePage() {
             width: "100%",
             height: "80px",
             padding: "10px",
-            background: "#000",
-            color: "#39ff14",
-            border: "1px solid #39ff14"
+            borderRadius: "6px",
+            border: "1px solid rgba(255,255,255,0.1)",
+            background: "#0a0a0a",
+            color: theme.text,
+            outline: "none"
           }}
         />
 
@@ -1650,7 +1739,7 @@ function AnimePage() {
           style={{
             marginTop: "10px",
             padding: "8px 14px",
-            background: "#39ff14",
+            background: "linear-gradient(135deg, #39ff14, #00ffcc)",
             border: "none",
             fontWeight: "bold",
             cursor: "pointer"
@@ -1662,10 +1751,10 @@ function AnimePage() {
         <div style={{ marginTop: "20px", display: "flex", flexDirection: "column", gap: "10px" }}>
           {comments.map((c, i) => (
             <div key={i} style={{ background: "#111", padding: "10px", borderRadius: "6px" }}>
-              <span style={{ color: "#9cff7a", fontSize: "13px" }}>
+              <span style={{ color: theme.subText, fontSize: "13px" }}>
                 {c.username || "User"}
               </span>
-              <p style={{ margin: "5px 0", color: "#39ff14" }}>{c.text}</p>
+              <p style={{ margin: "5px 0", color: theme.neon }}>{c.text}</p>
             </div>
           ))}
         </div>
@@ -1708,7 +1797,7 @@ function AnimePage() {
                   />
 
                   <div style={{ padding: "10px" }}>
-                    <h4 style={{ color: "#39ff14" }}>{rec.title}</h4>
+                    <h4 style={{ color: theme.neon }}>{rec.title}</h4>
                   </div>
                 </div>
               </Link>
@@ -1724,14 +1813,17 @@ function AnimePage() {
 function WatchPage() {
   const { id } = useParams()
   const [showSkip, setShowSkip] = useState(true)
+  const [showControls, setShowControls] = useState(true)
+  const [idleTimer, setIdleTimer] = useState(null)
   const introTime = 60
   const navigate = useNavigate()
   const [episodesList, setEpisodesList] = useState([])
   // BRICK 15: Add countdown state
   const [videoRef, setVideoRef] = useState(null)
+  const [isMiniPlayer, setIsMiniPlayer] = useState(false)
   const [countdown, setCountdown] = useState(null)
   const [showNextOverlay, setShowNextOverlay] = useState(false)
-const [nextEpisodeId, setNextEpisodeId] = useState(null)
+  const [nextEpisodeId, setNextEpisodeId] = useState(null)
 
   // BRICK 24 - resume playback
   const [savedProgress, setSavedProgress] = useState(null)
@@ -1748,11 +1840,29 @@ const [nextEpisodeId, setNextEpisodeId] = useState(null)
     }
   }, [videoRef, id])
   useEffect(() => {
-  fetch(`${API}/api/episodes`)
-    .then(res => res.json())
-    .then(data => setEpisodes(data))
-    .catch(() => setEpisodes([]))
-}, [])
+    fetch(`${API}/api/episodes`)
+      .then(res => res.json())
+      .then(data => setEpisodes(data))
+      .catch(() => setEpisodes([]))
+  }, [])
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!videoRef) return
+
+      const rect = videoRef.getBoundingClientRect()
+
+      if (rect.bottom < 0 || rect.top > window.innerHeight) {
+        setIsMiniPlayer(true)
+      } else {
+        setIsMiniPlayer(false)
+      }
+    }
+
+    window.addEventListener("scroll", handleScroll)
+
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [videoRef])
 
   // Fetch episode data to get videoUrl and all episodes for navigation
   const [episodeData, setEpisodeData] = useState(null)
@@ -1957,71 +2067,214 @@ const [nextEpisodeId, setNextEpisodeId] = useState(null)
     />
   </div>
 
-  <video
-  ref={(ref) => setVideoRef(ref)}
-  controls
-  autoPlay
-  tabIndex="0"
-  onKeyDown={(e) => {
-    const v = e.target
+  <div
+    onMouseMove={() => {
+      setShowControls(true)
 
-    if (e.code === "Space") {
-      e.preventDefault()
-      if (v.paused) v.play()
-      else v.pause()
-    }
+      if (idleTimer) clearTimeout(idleTimer)
 
-    if (e.code === "ArrowRight") {
-      v.currentTime += 10
-    }
+      const timer = setTimeout(() => {
+        setShowControls(false)
+      }, 2000)
 
-    if (e.code === "ArrowLeft") {
-      v.currentTime -= 10
-    }
-
-    if (e.code === "ArrowUp") {
-      v.volume = Math.min(1, v.volume + 0.1)
-    }
-
-    if (e.code === "ArrowDown") {
-      v.volume = Math.max(0, v.volume - 0.1)
-    }
-  }}
-  preload="none"
-  playsInline
-    onTimeUpdate={(e) => {
-      if (e.target.currentTime > introTime) {
-        setShowSkip(false)
-      }
-    }}
-    onEnded={() => {
-      if (localStorage.getItem("autoplay") === "false") return
-
-      const currentIndex = episodesList?.findIndex(ep => ep._id === id)
-
-      if (currentIndex !== -1 && episodesList[currentIndex + 1]) {
-        const nextEpisode = episodesList[currentIndex + 1]
-        navigate(`/watch/${nextEpisode._id}`)
-      }
+      setIdleTimer(timer)
     }}
     style={{
-      width: "100%",
-      maxWidth: "1100px",
-      marginTop: "20px",
-      borderRadius: "10px",
-      marginLeft: "auto",
-      marginRight: "auto"
+      position: "relative",
+      display: "flex",
+      justifyContent: "center",
+      transition: "opacity 0.3s"
     }}
   >
-    <source
-      src={
-        episodeData?.videoUrl
-          ? episodeData.videoUrl
-          : `${API}/api/episodes/watch/${id}`
-      }
-      type="video/mp4"
-    />
-  </video>
+    <video
+      ref={(ref) => {
+        if (ref) setVideoRef(ref)
+      }}
+      controls
+      autoPlay
+      tabIndex="0"
+      onKeyDown={(e) => {
+        const v = e.target
+
+        if (e.code === "Space") {
+          e.preventDefault()
+          if (v.paused) v.play()
+          else v.pause()
+        }
+
+        if (e.code === "ArrowRight") {
+          v.currentTime += 10
+        }
+
+        if (e.code === "ArrowLeft") {
+          v.currentTime -= 10
+        }
+
+        if (e.code === "ArrowUp") {
+          v.volume = Math.min(1, v.volume + 0.1)
+        }
+
+        if (e.code === "ArrowDown") {
+          v.volume = Math.max(0, v.volume - 0.1)
+        }
+      }}
+      preload="none"
+      playsInline
+      onTimeUpdate={(e) => {
+        const time = e.target.currentTime
+
+        localStorage.setItem("progress-" + id, time)
+
+        if (time > introTime) {
+          setShowSkip(false)
+        }
+      }}
+      onEnded={() => {
+        if (localStorage.getItem("autoplay") === "false") return
+
+        const currentIndex = episodesList?.findIndex(ep => ep._id === id)
+
+        if (currentIndex !== -1 && episodesList[currentIndex + 1]) {
+          const nextEpisode = episodesList[currentIndex + 1]
+          navigate(`/watch/${nextEpisode._id}`)
+        }
+      }}
+      style={{
+        width: isMiniPlayer ? "300px" : "100%",
+        maxWidth: isMiniPlayer ? "300px" : "1100px",
+        position: isMiniPlayer ? "fixed" : "relative",
+        bottom: isMiniPlayer ? "20px" : "auto",
+        right: isMiniPlayer ? "20px" : "auto",
+        zIndex: isMiniPlayer ? 999 : "auto",
+        marginTop: isMiniPlayer ? "0" : "20px",
+        borderRadius: "12px",
+        boxShadow: isMiniPlayer
+          ? "0 10px 30px rgba(0,0,0,0.8)"
+          : "0 20px 60px rgba(0,0,0,0.8)",
+        marginLeft: "auto",
+        marginRight: "auto"
+      }}
+    >
+      <source
+        src={
+          episodeData?.videoUrl
+            ? episodeData.videoUrl
+            : `${API}/api/episodes/watch/${id}`
+        }
+        type="video/mp4"
+      />
+    </video>
+
+    {/* Custom progress bar */}
+    <div
+      style={{
+        width: "100%",
+        maxWidth: "1100px",
+        marginTop: "10px",
+        opacity: showControls ? 1 : 0,
+        transition: "opacity 0.3s"
+      }}
+    >
+      <input
+        type="range"
+        min="0"
+        max={videoRef?.duration || 100}
+        value={videoRef?.currentTime || 0}
+        onChange={(e) => {
+          if (videoRef) {
+            videoRef.currentTime = e.target.value
+          }
+        }}
+        style={{
+          width: "100%",
+          accentColor: "#39ff14",
+          cursor: "pointer"
+        }}
+      />
+    </div>
+
+    {/* Volume slider */}
+    <div
+      style={{
+        marginTop: "10px",
+        display: "flex",
+        alignItems: "center",
+        gap: "10px",
+        justifyContent: "center",
+        opacity: showControls ? 1 : 0,
+        transition: "opacity 0.3s"
+      }}
+    >
+      <span style={{ color: "#39ff14" }}>🔊</span>
+
+      <input
+        type="range"
+        min="0"
+        max="1"
+        step="0.01"
+        defaultValue={videoRef?.volume || 1}
+        onChange={(e) => {
+          if (videoRef) {
+            videoRef.volume = e.target.value
+          }
+        }}
+        style={{
+          width: "200px",
+          accentColor: "#39ff14",
+          cursor: "pointer"
+        }}
+      />
+    </div>
+
+    {showSkip && showControls && (
+      <button
+        onClick={() => {
+          if (videoRef?.current) {
+            videoRef.current.currentTime = introTime
+            setShowSkip(false)
+          }
+        }}
+        style={{
+          position: "absolute",
+          bottom: "120px",
+          right: "60px",
+          padding: "10px 16px",
+          background: "linear-gradient(135deg, #39ff14, #00ffcc)",
+          border: "none",
+          borderRadius: "6px",
+          fontWeight: "bold",
+          cursor: "pointer",
+          zIndex: 10
+        }}
+      >
+        ⏭ Skip Intro
+      </button>
+    )}
+
+    <div
+      onClick={() => {
+        if (!videoRef?.current) return
+        if (videoRef.current.paused) videoRef.current.play()
+        else videoRef.current.pause()
+      }}
+      style={{
+        position: "absolute",
+        top: "50%",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
+        background: "rgba(0,0,0,0.6)",
+        color: "#fff",
+        padding: "14px 18px",
+        borderRadius: "50%",
+        cursor: "pointer",
+        zIndex: 9,
+        opacity: showControls ? 1 : 0,
+        transition: "opacity 0.3s"
+      }}
+    >
+      ▶
+    </div>
+  </div>
 
   <button
     onClick={() => {
