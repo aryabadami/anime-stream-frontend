@@ -5,7 +5,18 @@ skeletonStyle.innerHTML = `
   0% { opacity: 0.5 }
   50% { opacity: 1 }
   100% { opacity: 0.5 }
-}`
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg) }
+  100% { transform: rotate(360deg) }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+`
 document.head.appendChild(skeletonStyle)
 // BRICK 57 - default SEO title
 document.title = "Anime Stream | Watch Anime Online"
@@ -94,9 +105,9 @@ const pageStyle = {
 }
 
 const container = {
-  maxWidth: "1400px",
+  maxWidth: "1200px",
   margin: "0 auto",
-  padding: "0 20px",
+  padding: "0 24px",
   width: "100%",
   boxSizing: "border-box"
 }
@@ -124,13 +135,18 @@ const Navbar = React.memo(function Navbar() {
     <div
       style={{
         width: "100%",
-        padding: "12px 20px",
+        padding: "14px 24px",
         boxSizing: "border-box",
-        background: "rgba(10,10,10,0.7)",
-        borderBottom: "1px solid rgba(255,255,255,0.05)",
+        background: "rgba(10,10,10,0.55)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        borderBottom: "1px solid rgba(255,255,255,0.08)",
         display: "flex",
         justifyContent: "space-between",
-        alignItems: "center"
+        alignItems: "center",
+        position: "sticky",
+        top: 0,
+        zIndex: 1000
       }}
     >
       <Link
@@ -139,13 +155,21 @@ const Navbar = React.memo(function Navbar() {
           color: theme.neon,
           fontSize: "22px",
           fontWeight: "bold",
-          textDecoration: "none"
+          textDecoration: "none",
+          letterSpacing: "1px",
+          transition: "all 0.3s ease"
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.textShadow = "0 0 10px #39ff14"
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.textShadow = "none"
         }}
       >
         ANIME STREAM
       </Link>
 
-      <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
+      <div style={{ display: "flex", gap: "24px", alignItems: "center" }}>
         <span style={{ color: theme.neon, opacity: 0.7 }}>
           React · Node · Mongo
         </span>
@@ -161,7 +185,17 @@ const Navbar = React.memo(function Navbar() {
               border: "none",
               padding: "6px 10px",
               cursor: "pointer",
-              fontWeight: "bold"
+              fontWeight: "bold",
+              borderRadius: "6px",
+              transition: "all 0.3s ease"
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "scale(1.05)"
+              e.currentTarget.style.boxShadow = "0 10px 20px rgba(0,0,0,0.5)"
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "scale(1)"
+              e.currentTarget.style.boxShadow = "none"
             }}
           >
             Logout
@@ -172,7 +206,14 @@ const Navbar = React.memo(function Navbar() {
             style={{
               color: theme.neon,
               textDecoration: "none",
-              fontWeight: "bold"
+              fontWeight: "bold",
+              transition: "all 0.3s ease"
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.textShadow = "0 0 8px #39ff14"
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.textShadow = "none"
             }}
           >
             Login
@@ -753,6 +794,58 @@ function Home() {
     const amount = 320
     el.scrollBy({ left: dir === 'left' ? -amount : amount, behavior: 'smooth' })
   }
+
+  // BRICK 90 - auto scroll
+  useEffect(() => {
+    const row = document.getElementById("trending-row")
+    if (!row) return
+
+    // duplicate content for infinite scroll illusion
+    if (!row.dataset.cloned) {
+      row.innerHTML += row.innerHTML
+      row.dataset.cloned = "true"
+    }
+
+    let interval
+
+    // Modified startScroll to pause when dragging
+    const startScroll = () => {
+      interval = setInterval(() => {
+        if (row.isDown) return  // 🧠 pause auto-scroll when user is dragging
+
+        row.scrollLeft += 1
+
+        if (row.scrollLeft >= row.scrollWidth / 2) {
+          row.scrollLeft = 0
+        }
+      }, 20)
+    }
+
+    const stopScroll = () => {
+      if (interval) clearInterval(interval)
+    }
+
+    const handleVisibility = () => {
+      if (document.hidden) {
+        if (interval) clearInterval(interval)
+      } else {
+        startScroll()
+      }
+    }
+
+    startScroll()
+
+    row.addEventListener("mouseenter", stopScroll)
+    row.addEventListener("mouseleave", startScroll)
+    document.addEventListener("visibilitychange", handleVisibility)
+
+    return () => {
+      stopScroll()
+      row.removeEventListener("mouseenter", stopScroll)
+      row.removeEventListener("mouseleave", startScroll)
+      document.removeEventListener("visibilitychange", handleVisibility)
+    }
+  }, [])
   const [animeList, setAnimeList] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
@@ -878,14 +971,24 @@ function Home() {
           width: "100%",
           height: "420px",
           backgroundImage:
-            "linear-gradient(to right, rgba(0,0,0,0.9), transparent), url(https://cdn.myanimelist.net/images/anime/10/47347.jpg)",
+            "linear-gradient(to right, rgba(0,0,0,0.95), rgba(0,0,0,0.6), transparent), linear-gradient(to top, rgba(0,0,0,0.8), transparent), url(https://cdn.myanimelist.net/images/anime/10/47347.jpg)",
           backgroundSize: "cover",
           backgroundPosition: "center",
           display: "flex",
           alignItems: "center",
-          padding: "0px"
+          padding: "0 24px",
+          position: "relative",
+          overflow: "hidden"
         }}
       >
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "radial-gradient(circle at 30% 50%, rgba(57,255,20,0.15), transparent 60%)",
+            pointerEvents: "none"
+          }}
+        />
         <div>
           <h1 style={{ fontSize: "50px", marginBottom: "10px" }}>
             Attack on Titan
@@ -914,14 +1017,35 @@ function Home() {
       {/* BRICK 18 - Watchlist Row */}
       {watchlist.length > 0 && (
         <>
-          <h2 style={{ ...container, paddingTop: "20px" }}>My Watchlist</h2>
+          <div style={container}>
+            <h2
+              style={{
+                paddingTop: "20px",
+                fontSize: "22px",
+                letterSpacing: "0.5px",
+                position: "relative",
+                display: "inline-block"
+              }}
+            >
+              My Watchlist
+            </h2>
+            <div
+              style={{
+                width: "60px",
+                height: "3px",
+                background: "linear-gradient(90deg, #39ff14, transparent)",
+                marginTop: "6px",
+                marginBottom: "10px"
+              }}
+            />
+          </div>
 
           <div
             style={{
               display: "flex",
-              gap: "25px",
+              gap: "20px",
               overflowX: "auto",
-              padding: "20px 40px"
+              padding: "20px 0"
             }}
           >
             {watchlist.map(anime => (
@@ -929,9 +1053,19 @@ function Home() {
                 <div
                   style={{
                     width: "260px",
-                    border: "1px solid #39ff14",
-                    borderRadius: "10px",
-                    overflow: "hidden"
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    borderRadius: "12px",
+                    overflow: "hidden",
+                    transition: "all 0.3s ease",
+                    cursor: "pointer"
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "scale(1.04)"
+                    e.currentTarget.style.boxShadow = "0 15px 40px rgba(0,0,0,0.6)"
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "scale(1)"
+                    e.currentTarget.style.boxShadow = "none"
                   }}
                 >
                   <img loading="lazy" decoding="async"
@@ -946,14 +1080,35 @@ function Home() {
       )}
 
       {/* BRICK 16 - Popular Anime Row */}
-      <h2 style={{ ...container, paddingTop: "20px" }}>Popular Anime</h2>
+      <div style={container}>
+        <h2
+          style={{
+            paddingTop: "20px",
+            fontSize: "22px",
+            letterSpacing: "0.5px",
+            position: "relative",
+            display: "inline-block"
+          }}
+        >
+          Popular Anime
+        </h2>
+        <div
+          style={{
+            width: "60px",
+            height: "3px",
+            background: "linear-gradient(90deg, #39ff14, transparent)",
+            marginTop: "6px",
+            marginBottom: "10px"
+          }}
+        />
+      </div>
 
       <div
         style={{
           display: "flex",
-          gap: "25px",
+          gap: "20px",
           overflowX: "auto",
-          padding: "20px 40px"
+          padding: "20px 0"
         }}
       >
         {filteredAnime.slice(0,4).map(anime => (
@@ -961,9 +1116,19 @@ function Home() {
             <div
               style={{
                 width: "260px",
-                border: "1px solid #39ff14",
-                borderRadius: "10px",
-                overflow: "hidden"
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: "12px",
+                overflow: "hidden",
+                transition: "all 0.3s ease",
+                cursor: "pointer"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "scale(1.04)"
+                e.currentTarget.style.boxShadow = "0 15px 40px rgba(0,0,0,0.6)"
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "scale(1)"
+                e.currentTarget.style.boxShadow = "none"
               }}
             >
               <img loading="lazy" decoding="async"
@@ -975,9 +1140,30 @@ function Home() {
         ))}
       </div>
 
-      <h2 style={{ ...container, paddingTop: "20px" }}>Featured</h2>
+      <div style={container}>
+        <h2
+          style={{
+            paddingTop: "20px",
+            fontSize: "22px",
+            letterSpacing: "0.5px",
+            position: "relative",
+            display: "inline-block"
+          }}
+        >
+          Featured
+        </h2>
+        <div
+          style={{
+            width: "60px",
+            height: "3px",
+            background: "linear-gradient(90deg, #39ff14, transparent)",
+            marginTop: "6px",
+            marginBottom: "10px"
+          }}
+        />
+      </div>
 
-      <div style={{ width: "100%", padding: "20px 40px" }}>
+      <div style={{ width: "100%", padding: "20px 0", position: "relative" }}>
         <input
           type="text"
           placeholder="Search anime..."
@@ -992,6 +1178,49 @@ function Home() {
             color: "#39ff14"
           }}
         />
+        {search.length > 0 && (
+          <div
+            style={{
+              background: "#0f0f0f",
+              border: "1px solid #39ff14",
+              marginTop: "5px",
+              width: "300px",
+              position: "absolute",
+              zIndex: 1000,
+              maxHeight: "250px",
+              overflowY: "auto"
+            }}
+          >
+            {animeList
+              .filter(a => a.title.toLowerCase().includes(search.toLowerCase()))
+              .slice(0, 5)
+              .map(a => (
+                <div
+                  key={a._id}
+                  onClick={() => {
+                    window.location.hash = `/anime/${a._id}`
+                    setSearch("")
+                  }}
+                  style={{
+                    padding: "10px",
+                    cursor: "pointer",
+                    borderBottom: "1px solid #222",
+                    color: "#39ff14"
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "#39ff14"
+                    e.currentTarget.style.color = "#000"
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent"
+                    e.currentTarget.style.color = "#39ff14"
+                  }}
+                >
+                  {a.title}
+                </div>
+              ))}
+          </div>
+        )}
         {/* BRICK 26 - genre buttons */}
         <div style={{ marginTop: "10px", display: "flex", gap: "10px" }}>
           {["All", "Action", "Comedy", "Romance", "Fantasy", "Shonen"].map(g => (
@@ -1014,14 +1243,35 @@ function Home() {
 
       {continueWatching.length > 0 && (
         <>
-          <h2 style={{ ...container, paddingTop: "20px" }}>Continue Watching</h2>
+          <div style={container}>
+            <h2
+              style={{
+                paddingTop: "20px",
+                fontSize: "22px",
+                letterSpacing: "0.5px",
+                position: "relative",
+                display: "inline-block"
+              }}
+            >
+              Continue Watching
+            </h2>
+            <div
+              style={{
+                width: "60px",
+                height: "3px",
+                background: "linear-gradient(90deg, #39ff14, transparent)",
+                marginTop: "6px",
+                marginBottom: "10px"
+              }}
+            />
+          </div>
 
           <div
             style={{
               display: "flex",
               gap: "20px",
               overflowX: "auto",
-              padding: "20px 40px"
+              padding: "20px 0"
             }}
           >
             {continueWatching.map(id => (
@@ -1061,14 +1311,35 @@ function Home() {
       {/* BRICK 51 - Watch History */}
       {JSON.parse(localStorage.getItem("watch-history") || "[]").length > 0 && (
         <>
-          <h2 style={{ ...container, paddingTop: "20px" }}>Watch History</h2>
+          <div style={container}>
+            <h2
+              style={{
+                paddingTop: "20px",
+                fontSize: "22px",
+                letterSpacing: "0.5px",
+                position: "relative",
+                display: "inline-block"
+              }}
+            >
+              Watch History
+            </h2>
+            <div
+              style={{
+                width: "60px",
+                height: "3px",
+                background: "linear-gradient(90deg, #39ff14, transparent)",
+                marginTop: "6px",
+                marginBottom: "10px"
+              }}
+            />
+          </div>
 
           <div
             style={{
               display: "flex",
               gap: "20px",
               overflowX: "auto",
-              padding: "20px 40px"
+              padding: "20px 0"
             }}
           >
             {JSON.parse(localStorage.getItem("watch-history") || "[]").map(id => (
@@ -1106,14 +1377,35 @@ function Home() {
       )}
 
       {/* BRICK 48 - Recently Added Episodes */}
-      <h2 style={{ ...container, paddingTop: "20px" }}>Recently Added</h2>
+      <div style={container}>
+        <h2
+          style={{
+            paddingTop: "20px",
+            fontSize: "22px",
+            letterSpacing: "0.5px",
+            position: "relative",
+            display: "inline-block"
+          }}
+        >
+          Recently Added
+        </h2>
+        <div
+          style={{
+            width: "60px",
+            height: "3px",
+            background: "linear-gradient(90deg, #39ff14, transparent)",
+            marginTop: "6px",
+            marginBottom: "10px"
+          }}
+        />
+      </div>
 
       <div
         style={{
           display: "flex",
-          gap: "25px",
+          gap: "20px",
           overflowX: "auto",
-          padding: "20px 40px"
+          padding: "20px 0"
         }}
       >
         {episodesList.slice(-6).reverse().map(ep => {
@@ -1130,10 +1422,20 @@ function Home() {
               <div
                 style={{
                   width: "260px",
-                  border: "1px solid #39ff14",
-                  borderRadius: "10px",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: "12px",
                   overflow: "hidden",
-                  background: "#0f0f0f"
+                  background: "#0f0f0f",
+                  transition: "all 0.3s ease",
+                  cursor: "pointer"
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "scale(1.04)"
+                  e.currentTarget.style.boxShadow = "0 15px 40px rgba(0,0,0,0.6)"
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "scale(1)"
+                  e.currentTarget.style.boxShadow = "none"
                 }}
               >
                 <img loading="lazy" decoding="async"
@@ -1161,9 +1463,42 @@ function Home() {
       </div>
 
       {/* BRICK 23 - Netflix style hover preview */}
-      <h2 style={{ ...container, paddingTop: "20px" }}>Trending Anime</h2>
+      <div style={container}>
+        <h2
+          style={{
+            paddingTop: "20px",
+            fontSize: "22px",
+            letterSpacing: "0.5px",
+            position: "relative",
+            display: "inline-block"
+          }}
+        >
+          Trending Anime
+        </h2>
+        <div
+          style={{
+            width: "60px",
+            height: "3px",
+            background: "linear-gradient(90deg, #39ff14, transparent)",
+            marginTop: "6px",
+            marginBottom: "10px"
+          }}
+        />
+      </div>
 
       <div style={{ position: "relative" }}>
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            height: "100%",
+            width: "80px",
+            background: "linear-gradient(to right, #050505, transparent)",
+            zIndex: 5,
+            pointerEvents: "none"
+          }}
+        />
         <button
           onClick={() => scrollRow('trending-row','left')}
           style={{
@@ -1187,11 +1522,146 @@ function Home() {
             marginTop: "30px",
             display: "flex",
             flexDirection: "row",
-            gap: "25px",
+            gap: "20px",
             overflowX: "auto",
-            padding: "20px 40px",
+            padding: "20px 0",
             width: "100%",
-            scrollBehavior: "smooth"
+            scrollBehavior: "smooth",
+            scrollSnapType: "x mandatory",
+            WebkitOverflowScrolling: "touch",
+            scrollPadding: "0 24px",
+          }}
+          onMouseDown={(e) => {
+            const row = e.currentTarget
+            row.isDown = true
+            row.startX = e.pageX
+            row.scrollLeftStart = row.scrollLeft
+            row.velocity = 0
+            if (row.autoScrollInterval) clearInterval(row.autoScrollInterval)
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.isDown = false
+          }}
+          onMouseUp={(e) => {
+            const row = e.currentTarget
+            row.isDown = false
+
+            let velocity = row.velocity || 0
+            const decay = 0.95
+
+            const momentum = () => {
+              if (Math.abs(velocity) < 0.5) {
+                // SNAP TO CENTER AFTER MOMENTUM
+                const cards = Array.from(row.children)
+                const rowCenter = row.scrollLeft + row.offsetWidth / 2
+
+                let closest = null
+                let closestDist = Infinity
+
+                cards.forEach(card => {
+                  const cardCenter = card.offsetLeft + card.offsetWidth / 2
+                  const dist = Math.abs(cardCenter - rowCenter)
+
+                  if (dist < closestDist) {
+                    closestDist = dist
+                    closest = card
+                  }
+                })
+
+                if (closest) {
+                  row.scrollTo({
+                    left: closest.offsetLeft - (row.offsetWidth / 2 - closest.offsetWidth / 2),
+                    behavior: "smooth"
+                  })
+                }
+
+                return
+              }
+
+              row.scrollLeft -= velocity
+              velocity *= decay
+              requestAnimationFrame(momentum)
+            }
+
+            momentum()
+            setTimeout(() => {
+              const event = new Event("mouseleave")
+              row.dispatchEvent(event)
+            }, 200)
+          }}
+          onMouseMove={(e) => {
+            const row = e.currentTarget
+            if (!row.isDown) return
+
+            const dx = e.pageX - row.startX
+            const walk = dx * 1.2
+
+            const prev = row.scrollLeft
+            row.scrollLeft = row.scrollLeftStart - walk
+
+            row.velocity = row.scrollLeft - prev
+          }}
+          onTouchStart={(e) => {
+            const row = e.currentTarget
+            row.startX = e.touches[0].pageX
+            row.scrollLeftStart = row.scrollLeft
+            row.velocity = 0
+            if (row.autoScrollInterval) clearInterval(row.autoScrollInterval)
+          }}
+          onTouchMove={(e) => {
+            const row = e.currentTarget
+            const dx = e.touches[0].pageX - row.startX
+            const walk = dx * 1.2
+
+            const prev = row.scrollLeft
+            row.scrollLeft = row.scrollLeftStart - walk
+
+            row.velocity = row.scrollLeft - prev
+          }}
+          onTouchEnd={(e) => {
+            const row = e.currentTarget
+            let velocity = row.velocity || 0
+            const decay = 0.95
+
+            const momentum = () => {
+              if (Math.abs(velocity) < 0.5) {
+                // SNAP TO CENTER AFTER MOMENTUM
+                const cards = Array.from(row.children)
+                const rowCenter = row.scrollLeft + row.offsetWidth / 2
+
+                let closest = null
+                let closestDist = Infinity
+
+                cards.forEach(card => {
+                  const cardCenter = card.offsetLeft + card.offsetWidth / 2
+                  const dist = Math.abs(cardCenter - rowCenter)
+
+                  if (dist < closestDist) {
+                    closestDist = dist
+                    closest = card
+                  }
+                })
+
+                if (closest) {
+                  row.scrollTo({
+                    left: closest.offsetLeft - (row.offsetWidth / 2 - closest.offsetWidth / 2),
+                    behavior: "smooth"
+                  })
+                }
+
+                return
+              }
+
+              row.scrollLeft -= velocity
+              velocity *= decay
+              requestAnimationFrame(momentum)
+            }
+
+            momentum()
+            setTimeout(() => {
+              const event = new Event("mouseleave")
+              row.dispatchEvent(event)
+            }, 200)
           }}
         >
           {filteredAnime.map(anime => (
@@ -1199,25 +1669,41 @@ function Home() {
               <div
                 style={{
                   width: "260px",
+                  flexShrink: 0,
+                  scrollSnapAlign: "center",
+                  scrollMargin: "0 12px",
                   background: theme.card,
                   borderRadius: "12px",
-                  overflow: "hidden",
                   border: "1px solid rgba(255,255,255,0.05)",
                   transition: "all 0.3s ease",
                   cursor: "pointer",
-                  position: "relative"
+                  position: "relative",
+                  willChange: "transform, box-shadow",
+                  // BRICK 85 - ensure overlay/hover bars can pop out
+                  overflow: "visible",
+                  zIndex: hoveredAnime === anime._id ? 50 : 1,
+                  transform: hoveredAnime === anime._id ? "translateY(-20px) scale(1.15)" : "translateY(0) scale(1)",
                 }}
                 onMouseEnter={(e) => {
-                  setHoveredAnime(anime._id)
-                  e.currentTarget.style.transform = "translateY(-8px) scale(1.03)"
-                  e.currentTarget.style.boxShadow = "0 20px 40px rgba(0,0,0,0.6)"
+                  const timer = setTimeout(() => {
+                    setHoveredAnime(anime._id)
+                  }, 800) // delay like Netflix
+
+                  setHoverTimer(timer)
+
+                  // e.currentTarget.style.transform = "translateY(-12px) scale(1.08)"
+                  e.currentTarget.style.boxShadow = "0 35px 80px rgba(57,255,20,0.35)"
+                  e.currentTarget.style.border = "1px solid rgba(57,255,20,0.5)"
                 }}
                 onMouseLeave={(e) => {
-                  clearTimeout(hoverTimer)
+                  if (hoverTimer) clearTimeout(hoverTimer)
+
                   setHoveredAnime(null)
-                  e.currentTarget.style.transform = "translateY(0) scale(1)"
+
+                  // e.currentTarget.style.transform = "translateY(0) scale(1)"
                   e.currentTarget.style.boxShadow = "none"
-                }}               
+                  e.currentTarget.style.border = "1px solid rgba(255,255,255,0.05)"
+                }}
               >
                 <div style={{ position: "relative", width: "100%", height: "360px" }}>
                   <img
@@ -1298,20 +1784,70 @@ function Home() {
                       }}
                     >
                       <div
-                      style={{
-                        background: theme.neon,
-                        color: "#000",
-                        padding: "10px 18px",
-                        borderRadius: "6px",
-                        fontWeight: "bold",
-                        fontSize: "14px"
-                      }}
+                        style={{
+                          background: theme.neon,
+                          color: "#000",
+                          padding: "10px 18px",
+                          borderRadius: "6px",
+                          fontWeight: "bold",
+                          fontSize: "14px"
+                        }}
                       >
                         ▶ Play Preview
                       </div>
                     </div>
                   )}
                 </div>
+
+                {/* BRICK 85 - Netflix hover action bar */}
+                {hoveredAnime === anime._id && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "10px",
+                      left: "10px",
+                      display: "flex",
+                      gap: "8px",
+                      zIndex: 5
+                    }}
+                  >
+                    <button
+                      style={{
+                        background: "#39ff14",
+                        color: "#000",
+                        border: "none",
+                        padding: "6px 10px",
+                        fontWeight: "bold",
+                        cursor: "pointer",
+                        borderRadius: "4px"
+                      }}
+                    >
+                      ▶ Play
+                    </button>
+
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault()
+                        const list = JSON.parse(localStorage.getItem("watchlist") || "[]")
+
+                        if (!list.find(x => x._id === anime._id)) {
+                          list.push(anime)
+                          localStorage.setItem("watchlist", JSON.stringify(list))
+                        }
+                      }}
+                      style={{
+                        background: "#000",
+                        color: "#39ff14",
+                        border: "1px solid #39ff14",
+                        padding: "6px 10px",
+                        cursor: "pointer",
+                        borderRadius: "4px"
+                      }}
+                    >
+                      + List
+                    </button>
+                  </div>
+                )}
 
                 {hoveredAnime === anime._id && (
   <div
@@ -1403,6 +1939,18 @@ function Home() {
         >
           ▶
         </button>
+        <div
+          style={{
+            position: "absolute",
+            right: 0,
+            top: 0,
+            height: "100%",
+            width: "80px",
+            background: "linear-gradient(to left, #050505, transparent)",
+            zIndex: 5,
+            pointerEvents: "none"
+          }}
+        />
       </div>
       <Footer/>
     </div>
@@ -1460,9 +2008,45 @@ function AnimePage() {
         const found = data.find(a => a._id === id)
         if (found) setAnime(found)
 
-        // simple recommendation logic (other anime)
-        const others = data.filter(a => a._id !== id).slice(0,4)
-        setRecommended(others)
+        // improved recommendation logic
+        const history = JSON.parse(localStorage.getItem("watch-history") || "[]")
+
+        const getAnimeFromEpisode = (epId) => {
+          const ep = data.find(e => e._id === epId)
+          return ep?.anime?._id || ep?.anime
+        }
+
+        const watchedAnimeIds = history.map(getAnimeFromEpisode)
+
+        const scoreAnime = (animeItem) => {
+          let score = 0
+
+          watchedAnimeIds.forEach(watchedId => {
+            const watched = data.find(a => a._id === watchedId)
+
+            if (watched?.genre && animeItem.genre) {
+              const common = animeItem.genre.filter(g =>
+                watched.genre.includes(g)
+              ).length
+
+              score += common * 5
+            }
+          })
+
+          score += Math.random() * 2
+
+          return score
+        }
+
+        const ranked = data
+          .filter(a => a._id !== id)
+          .map(a => ({
+            ...a,
+            score: scoreAnime(a)
+          }))
+          .sort((a, b) => b.score - a.score)
+
+        setRecommended(ranked.slice(0, 6))
       })
 
     // BRICK 41 - fetch comments
@@ -1585,7 +2169,11 @@ function AnimePage() {
         </div>
       )}
 
-      <h2 style={{ ...container, paddingTop: "20px" }}>Episodes</h2>
+      <div style={container}>
+        <h2 style={{ paddingTop: "20px" }}>
+          Episodes
+        </h2>
+      </div>
 
       {/* BRICK 25 - sidebar layout for episodes */}
       <div
@@ -1764,16 +2352,18 @@ function AnimePage() {
       {/* BRICK 27 - Recommended Anime */}
       {recommended.length > 0 && (
         <>
-          <h2 style={{ ...container, paddingTop: "20px" }}>
-            You May Also Like
-          </h2>
+          <div style={container}>
+            <h2 style={{ paddingTop: "20px", fontSize: "24px" }}>
+              🎯 Recommended For You
+            </h2>
+          </div>
 
           <div
             style={{
               display: "flex",
-              gap: "25px",
+              gap: "20px",
               overflowX: "auto",
-              padding: "20px 40px"
+              padding: "20px 0"
             }}
           >
             {recommended.map(rec => (
@@ -1785,10 +2375,16 @@ function AnimePage() {
                 <div
                   style={{
                     width: "220px",
-                    border: "1px solid #39ff14",
-                    borderRadius: "10px",
-                    overflow: "hidden",
-                    background: "#0f0f0f"
+                    transition: "all 0.3s ease",
+                    cursor: "pointer"
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "scale(1.05)"
+                    e.currentTarget.style.boxShadow = "0 10px 30px rgba(0,0,0,0.6)"
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "scale(1)"
+                    e.currentTarget.style.boxShadow = "none"
                   }}
                 >
                   <img
@@ -1833,13 +2429,14 @@ function WatchPage() {
   // BRICK 24 - load saved progress and setSavedProgress
   useEffect(() => {
     const saved = localStorage.getItem("progress-" + id)
+
     if (saved) {
       setSavedProgress(parseFloat(saved))
-    }
 
-   if (saved && videoRef?.current) {
-  videoRef.current.currentTime = parseFloat(saved)
-}oRef.current.currentTime = parseFloat(saved)
+      if (videoRef?.current) {
+        videoRef.current.currentTime = parseFloat(saved)
+      }
+    }
   }, [videoRef, id])
 
   useEffect(() => {
@@ -2412,6 +3009,8 @@ useEffect(() => {
   )
 }
 function App() {
+  // Global loading state for page navigation
+  const [pageLoading, setPageLoading] = useState(false)
 
   // Remove default browser white margin around the page
   useEffect(() => {
@@ -2419,24 +3018,92 @@ function App() {
     document.body.style.background = "#050505"
   }, [])
 
+  // Global loader effect for navigation
+  useEffect(() => {
+    const handleStart = () => setPageLoading(true)
+    const handleEnd = () => setPageLoading(false)
+
+    window.addEventListener("hashchange", handleStart)
+    window.addEventListener("load", handleEnd)
+
+    return () => {
+      window.removeEventListener("hashchange", handleStart)
+      window.removeEventListener("load", handleEnd)
+    }
+  }, [])
+
+  useEffect(() => {
+    const handleScrollTop = () => {
+      window.scrollTo(0, 0)
+    }
+
+    window.addEventListener("hashchange", handleScrollTop)
+
+    return () => {
+      window.removeEventListener("hashchange", handleScrollTop)
+    }
+  }, [])
+
   return (
     <ErrorBoundary>
-    <HashRouter>
-      <Routes>
-        <Route path="/" element={<Home />} />
-      <Route path="/anime/:id" element={<AnimePage />} />
-      <Route path="/watch/:id" element={<WatchPage />} />
-        <Route
-          path="/admin"
-          element={
-            localStorage.getItem("admin-auth") === "true"
-              ? <AdminPage />
-              : <AdminLogin />
-          }
-        />
-        <Route path="/login" element={<AuthPage />} />
-      </Routes>
-    </HashRouter>
+      {pageLoading && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            background: "#050505",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 99999
+          }}
+        >
+          <div
+            style={{
+              textAlign: "center",
+              color: "#39ff14"
+            }}
+          >
+            <div
+              style={{
+                width: "60px",
+                height: "60px",
+                border: "4px solid #222",
+                borderTop: "4px solid #39ff14",
+                borderRadius: "50%",
+                animation: "spin 1s linear infinite",
+                margin: "0 auto"
+              }}
+            />
+            <p style={{ marginTop: "10px" }}>Loading...</p>
+          </div>
+        </div>
+      )}
+      <HashRouter>
+        <div
+          style={{
+            animation: "fadeIn 0.4s ease"
+          }}
+        >
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/anime/:id" element={<AnimePage />} />
+            <Route path="/watch/:id" element={<WatchPage />} />
+            <Route
+              path="/admin"
+              element={
+                localStorage.getItem("admin-auth") === "true"
+                  ? <AdminPage />
+                  : <AdminLogin />
+              }
+            />
+            <Route path="/login" element={<AuthPage />} />
+          </Routes>
+        </div>
+      </HashRouter>
     </ErrorBoundary>
   )
 }
