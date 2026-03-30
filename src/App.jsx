@@ -417,6 +417,56 @@ function AdminPage() {
   const [episodeNumber, setEpisodeNumber] = useState("")
   const [videoFile, setVideoFile] = useState(null)
   const [videoUrl, setVideoUrl] = useState("")
+  const [episodesList, setEpisodesList] = useState([])
+  const [selectedAnimeEpisodes, setSelectedAnimeEpisodes] = useState([])
+  // Bulk upload state variables
+  const [bulkFiles, setBulkFiles] = useState([])
+  const [bulkUrls, setBulkUrls] = useState("")
+  useEffect(() => {
+    if (!animeId) return
+    const filtered = episodesList.filter(e => (e.anime?._id || e.anime) === animeId)
+    setSelectedAnimeEpisodes(filtered)
+  }, [animeId, episodesList])
+
+  const handleDeleteEpisode = async (id) => {
+    if (!window.confirm("Delete this episode?")) return
+
+    try {
+      console.log("Deleting episode:", id)
+
+      const res = await fetch(`${API}/api/episodes/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json"
+        }
+      })
+
+      const text = await res.text()
+      console.log("Delete response:", text)
+
+      if (!res.ok) {
+        alert("Delete failed: " + text)
+        return
+      }
+
+      // remove from both lists
+      setSelectedAnimeEpisodes(prev => prev.filter(ep => ep._id !== id))
+      setEpisodesList(prev => prev.filter(ep => ep._id !== id))
+
+      alert("Episode deleted successfully")
+
+    } catch (err) {
+      console.error("Delete error:", err)
+      alert("Delete failed (network/backend issue)")
+    }
+  }
+  // Fetch all episodes for episode number calculation
+  useEffect(() => {
+    fetch(`${API}/api/episodes`)
+      .then(res => res.json())
+      .then(data => setEpisodesList(data))
+      .catch(() => setEpisodesList([]))
+  }, [])
 
   // BRICK 17 - analytics state and effect
   const [animeCount, setAnimeCount] = useState(0)
@@ -493,12 +543,16 @@ function AdminPage() {
       return
     }
 
+    // OPTIONAL SAFETY (recommended)
+    if (!episodesList || episodesList.length === 0) {
+      console.warn("Episodes list not loaded, defaulting episode number to 1")
+    }
+
     // Always use FormData, compatible with multer backend
     const formData = new FormData()
     formData.append("anime", animeId)
     formData.append("animeId", animeId)
     formData.append("title", episodeTitle)
-    formData.append("episodeNumber", episodeNumber)
 
     // If a Cloud URL is provided, send it
     if (videoUrl && videoUrl.trim() !== "") {
@@ -540,6 +594,57 @@ function AdminPage() {
     } catch (err) {
       console.error(err)
       alert("Episode upload failed")
+    }
+  }
+
+  // Bulk upload handler
+  const handleBulkUpload = async (e) => {
+    e.preventDefault()
+
+    if (!animeId) {
+      alert("Select anime first")
+      return
+    }
+
+    try {
+      const existingEpisodes = episodesList.filter(e => (e.anime?._id || e.anime) === animeId)
+      let startNumber = existingEpisodes.length
+
+      // HANDLE FILES
+      for (let i = 0; i < bulkFiles.length; i++) {
+        const formData = new FormData()
+        formData.append("anime", animeId)
+        formData.append("title", `Episode ${startNumber + i + 1}`)
+        formData.append("video", bulkFiles[i])
+
+        await fetch(`${API}/api/episodes`, {
+          method: "POST",
+          body: formData
+        })
+      }
+
+      // HANDLE URLS
+      const urls = bulkUrls.split("\n").map(u => u.trim()).filter(Boolean)
+
+      for (let i = 0; i < urls.length; i++) {
+        await fetch(`${API}/api/episodes`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            anime: animeId,
+            title: `Episode ${startNumber + bulkFiles.length + i + 1}`,
+            videoUrl: urls[i]
+          })
+        })
+      }
+
+      alert("Bulk upload completed 🚀")
+      setBulkFiles([])
+      setBulkUrls("")
+
+    } catch (err) {
+      console.error(err)
+      alert("Bulk upload failed")
     }
   }
 
@@ -681,6 +786,42 @@ function AdminPage() {
 
       <h2 style={{ marginTop: "40px" }}>Upload Episode</h2>
 
+      <div style={{ marginTop: "20px" }}>
+        <h3>Manage Episodes</h3>
+
+        {selectedAnimeEpisodes?.map(ep => (
+          <div
+            key={ep._id}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              background: "#111",
+              padding: "10px",
+              marginTop: "8px",
+              border: "1px solid #39ff14",
+              borderRadius: "6px"
+            }}
+          >
+            <span>Episode {ep.episodeNumber}</span>
+
+            <button
+              onClick={() => handleDeleteEpisode(ep._id)}
+              style={{
+                background: "#ff3b3b",
+                border: "none",
+                padding: "6px 10px",
+                cursor: "pointer",
+                color: "#fff",
+                fontWeight: "bold"
+              }}
+            >
+              Delete
+            </button>
+          </div>
+        ))}
+      </div>
+
       <form
         onSubmit={handleEpisodeUpload}
         style={{
@@ -729,20 +870,7 @@ function AdminPage() {
           }}
         />
 
-        <input
-          type="number"
-          placeholder="Episode Number"
-          value={episodeNumber}
-          onChange={(e) => setEpisodeNumber(e.target.value)}
-          style={{
-            padding: "10px",
-            borderRadius: "6px",
-            border: "1px solid rgba(255,255,255,0.1)",
-            background: "#0a0a0a",
-            color: theme.text,
-            outline: "none"
-          }}
-        />
+
 
         <input
           type="file"
@@ -779,6 +907,51 @@ function AdminPage() {
           }}
         >
           Upload Episode Video
+        </button>
+      </form>
+      {/* Bulk Upload Episodes UI */}
+      <h2 style={{ marginTop: "40px" }}>Bulk Upload Episodes</h2>
+
+      <form onSubmit={handleBulkUpload}
+        style={{
+          marginTop: "20px",
+          width: "400px",
+          marginLeft: "auto",
+          marginRight: "auto",
+          display: "flex",
+          flexDirection: "column",
+          gap: "15px"
+        }}
+      >
+        <input
+          type="file"
+          multiple
+          accept="video/mp4"
+          onChange={(e) => setBulkFiles(Array.from(e.target.files))}
+        />
+        <textarea
+          placeholder="OR paste video URLs (one per line)"
+          value={bulkUrls}
+          onChange={(e) => setBulkUrls(e.target.value)}
+          style={{
+            padding: "10px",
+            borderRadius: "6px",
+            background: "#0a0a0a",
+            color: "#fff",
+            height: "100px"
+          }}
+        />
+        <button
+          type="submit"
+          style={{
+            padding: "10px",
+            background: "linear-gradient(135deg, #39ff14, #00ffcc)",
+            border: "none",
+            fontWeight: "bold",
+            cursor: "pointer"
+          }}
+        >
+          Upload All Episodes 🚀
         </button>
       </form>
       <Footer />
@@ -1990,10 +2163,17 @@ function AnimePage() {
     fetch(`${API}/api/episodes`)
       .then(res => res.json())
       .then(data => {
-        const filtered = data.filter(ep => {
-          const ref = ep.anime?._id || ep.anime || ep.animeId
-          return String(ref) === String(id)
-        })
+        const filtered = data
+          .filter(ep => {
+            const ref = ep.anime?._id || ep.anime || ep.animeId
+            return String(ref) === String(id)
+          })
+          .map((ep, index) => ({
+            ...ep,
+            episodeNumber: ep.episodeNumber || index + 1
+          }))
+
+        console.log("Filtered episodes:", filtered)
 
         // Brick 20: always sort episodes by episode number
         filtered.sort((a, b) => Number(a.episodeNumber) - Number(b.episodeNumber))
@@ -2244,7 +2424,7 @@ function AnimePage() {
 
             <div style={{ flex: 1 }}>
               <h3 style={{ marginBottom: "6px" }}>
-                Episode {ep.episodeNumber}
+                Episode {Number(ep.episodeNumber) || "?"}
               </h3>
 
               <div
