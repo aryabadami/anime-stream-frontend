@@ -22,7 +22,7 @@ document.head.appendChild(skeletonStyle)
 document.title = "Anime Stream | Watch Anime Online"
 import React, { useEffect, useState } from "react"
 // BRICK 59 - production API endpoint support
-const API = import.meta.env.VITE_API_URL || "http://localhost:5001"
+const API = "https://anime-stream-backend-my9i.onrender.com"
 
 const theme = {
   bg: "#050505",
