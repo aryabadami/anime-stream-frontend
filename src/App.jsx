@@ -410,11 +410,49 @@ function AdminPage() {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [coverImage, setCoverImage] = useState("")
+  const [genres, setGenres] = useState([])
+
+  useEffect(() => {
+    if (!title) return
+
+    const fetchImage = async () => {
+      try {
+        const res = await fetch(
+          `https://api.jikan.moe/v4/anime?q=${title}&limit=1`
+        )
+
+        const data = await res.json()
+
+        const animeData = data?.data?.[0]
+
+        if (!animeData) return
+
+        const image = animeData.images?.jpg?.image_url
+        const desc = animeData.synopsis
+        const fetchedGenres = animeData.genres?.map(g => g.name) || []
+        setGenres(fetchedGenres)
+
+        if (image) {
+          setCoverImage(image)
+        }
+
+        if (desc && !description) {
+          setDescription(desc.slice(0, 200))
+        }
+
+        console.log("Genres:", fetchedGenres)
+      } catch (err) {
+        console.error("Image fetch failed", err)
+      }
+    }
+
+    const timeout = setTimeout(fetchImage, 500)
+    return () => clearTimeout(timeout)
+  }, [title])
 
   const [animeId, setAnimeId] = useState("")
   const [animeList, setAnimeList] = useState([])
   const [episodeTitle, setEpisodeTitle] = useState("")
-  const [episodeNumber, setEpisodeNumber] = useState("")
   const [videoFile, setVideoFile] = useState(null)
   const [videoUrl, setVideoUrl] = useState("")
   const [episodesList, setEpisodesList] = useState([])
@@ -422,6 +460,9 @@ function AdminPage() {
   // Bulk upload state variables
   const [bulkFiles, setBulkFiles] = useState([])
   const [bulkUrls, setBulkUrls] = useState("")
+  // Episode editing state
+  const [editingId, setEditingId] = useState(null)
+  const [editTitle, setEditTitle] = useState("")
   useEffect(() => {
     if (!animeId) return
     const filtered = episodesList.filter(e => (e.anime?._id || e.anime) === animeId)
@@ -458,6 +499,37 @@ function AdminPage() {
     } catch (err) {
       console.error("Delete error:", err)
       alert("Delete failed (network/backend issue)")
+    }
+  }
+
+  const handleUpdateEpisode = async (id) => {
+    try {
+      const res = await fetch(`${API}/api/episodes/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: editTitle })
+      })
+
+      if (!res.ok) {
+        alert("Update failed")
+        return
+      }
+
+      setEpisodesList(prev =>
+        prev.map(ep => ep._id === id ? { ...ep, title: editTitle } : ep)
+      )
+
+      setSelectedAnimeEpisodes(prev =>
+        prev.map(ep => ep._id === id ? { ...ep, title: editTitle } : ep)
+      )
+
+      setEditingId(null)
+      setEditTitle("")
+      alert("Episode updated")
+
+    } catch (err) {
+      console.error(err)
+      alert("Update failed")
     }
   }
   // Fetch all episodes for episode number calculation
@@ -521,7 +593,7 @@ function AdminPage() {
       const res = await fetch(`${API}/api/anime`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description, coverImage })
+        body: JSON.stringify({ title, description, coverImage, genre: genres })
       })
 
       await res.json()
@@ -530,6 +602,16 @@ function AdminPage() {
       setTitle("")
       setDescription("")
       setCoverImage("")
+
+      // 🔥 AUTO REFRESH ANIME LIST (BRICK 111)
+      fetch(`${API}/api/anime`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            setAnimeList(data)
+            setAnimeCount(data.length)
+          }
+        })
     } catch (err) {
       console.error(err)
       alert("Upload failed")
@@ -543,6 +625,17 @@ function AdminPage() {
       return
     }
 
+    const existingEpisodes = episodesList.filter(
+      e => (e.anime?._id || e.anime) === animeId
+    )
+
+    const nextEpisodeNumber = existingEpisodes.length + 1
+
+    const finalTitle =
+      episodeTitle.trim() !== ""
+        ? episodeTitle
+        : `Episode ${nextEpisodeNumber}`
+
     // OPTIONAL SAFETY (recommended)
     if (!episodesList || episodesList.length === 0) {
       console.warn("Episodes list not loaded, defaulting episode number to 1")
@@ -552,7 +645,17 @@ function AdminPage() {
     const formData = new FormData()
     formData.append("anime", animeId)
     formData.append("animeId", animeId)
-    formData.append("title", episodeTitle)
+    formData.append("title", finalTitle)
+    formData.append("episodeNumber", nextEpisodeNumber)
+    // 🔥 BRICK 109 - auto thumbnail from Cloudinary video
+    if (videoUrl && videoUrl.includes("cloudinary")) {
+      try {
+        const thumbnail = videoUrl.replace("/upload/", "/upload/so_1/").replace(".mp4", ".jpg")
+        formData.append("thumbnail", thumbnail)
+      } catch (err) {
+        console.warn("Thumbnail generation failed")
+      }
+    }
 
     // If a Cloud URL is provided, send it
     if (videoUrl && videoUrl.trim() !== "") {
@@ -564,37 +667,49 @@ function AdminPage() {
       formData.append("video", videoFile)
     }
 
-    try {
-      const res = await fetch(`${API}/api/episodes`, {
-        method: "POST",
-        body: formData
-      })
+    // XHR-based upload with progress bar
+    const xhr = new XMLHttpRequest()
 
-      let data
-      let text
-      try {
-        data = await res.json()
-      } catch {
-        text = await res.text()
+    xhr.open("POST", `${API}/api/episodes`)
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const percent = (event.loaded / event.total) * 100
+        const bar = document.getElementById("upload-progress-bar")
+        if (bar) bar.style.width = percent + "%"
       }
-
-      if (!res.ok) {
-        console.error("Upload failed raw response:", data || text)
-        alert("Episode upload failed:\n" + JSON.stringify(data || text))
-        return
-      }
-
-      console.log("Episode uploaded:", data)
-      alert("Episode uploaded successfully")
-
-      setEpisodeTitle("")
-      setEpisodeNumber("")
-      setVideoFile(null)
-      setVideoUrl("")
-    } catch (err) {
-      console.error(err)
-      alert("Episode upload failed")
     }
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        alert("Episode uploaded successfully")
+
+        setEpisodeTitle("")
+        setVideoFile(null)
+        setVideoUrl("")
+
+        const bar = document.getElementById("upload-progress-bar")
+        if (bar) bar.style.width = "0%"
+
+        // 🔥 AUTO REFRESH EPISODES (BRICK 110)
+        fetch(`${API}/api/episodes`)
+          .then(res => res.json())
+          .then(data => {
+            setEpisodesList(data)
+
+            const filtered = data.filter(e => (e.anime?._id || e.anime) === animeId)
+            setSelectedAnimeEpisodes(filtered)
+          })
+      } else {
+        alert("Upload failed")
+      }
+    }
+
+    xhr.onerror = () => {
+      alert("Upload failed (network)")
+    }
+
+    xhr.send(formData)
   }
 
   // Bulk upload handler
@@ -770,6 +885,43 @@ function AdminPage() {
           }}
         />
 
+        <input
+          type="file"
+          accept="image/*"
+          onChange={async (e) => {
+            const file = e.target.files[0]
+            if (!file) return
+
+            const formData = new FormData()
+            formData.append("file", file)
+            formData.append("upload_preset", "anime-covers")
+
+            try {
+              const res = await fetch(
+                "https://api.cloudinary.com/v1_1/dyte6flnv/image/upload",
+                {
+                  method: "POST",
+                  body: formData
+                }
+              )
+
+              const data = await res.json()
+
+              console.log("Cloudinary response:", data)
+
+              if (data.secure_url) {
+                setCoverImage(data.secure_url)
+                alert("Image uploaded successfully 🚀")
+              } else {
+                alert("Upload failed")
+              }
+            } catch (err) {
+              console.error(err)
+              alert("Upload error")
+            }
+          }}
+        />
+
         <button
           type="submit"
           style={{
@@ -803,21 +955,66 @@ function AdminPage() {
               borderRadius: "6px"
             }}
           >
-            <span>Episode {ep.episodeNumber}</span>
+            {editingId === ep._id ? (
+              <input
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                style={{
+                  padding: "6px",
+                  background: "#000",
+                  color: "#39ff14",
+                  border: "1px solid #39ff14"
+                }}
+              />
+            ) : (
+              <span>{ep.title || `Episode ${ep.episodeNumber}`}</span>
+            )}
 
-            <button
-              onClick={() => handleDeleteEpisode(ep._id)}
-              style={{
-                background: "#ff3b3b",
-                border: "none",
-                padding: "6px 10px",
-                cursor: "pointer",
-                color: "#fff",
-                fontWeight: "bold"
-              }}
-            >
-              Delete
-            </button>
+            <div style={{ display: "flex", gap: "8px" }}>
+              {editingId === ep._id ? (
+                <button
+                  onClick={() => handleUpdateEpisode(ep._id)}
+                  style={{
+                    background: "#39ff14",
+                    border: "none",
+                    padding: "6px 10px",
+                    cursor: "pointer",
+                    fontWeight: "bold"
+                  }}
+                >
+                  Save
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    setEditingId(ep._id)
+                    setEditTitle(ep.title || `Episode ${ep.episodeNumber}`)
+                  }}
+                  style={{
+                    background: "#222",
+                    border: "1px solid #39ff14",
+                    padding: "6px 10px",
+                    cursor: "pointer",
+                    color: "#39ff14"
+                  }}
+                >
+                  Edit
+                </button>
+              )}
+              <button
+                onClick={() => handleDeleteEpisode(ep._id)}
+                style={{
+                  background: "#ff3b3b",
+                  border: "none",
+                  padding: "6px 10px",
+                  cursor: "pointer",
+                  color: "#fff",
+                  fontWeight: "bold"
+                }}
+              >
+                Delete
+              </button>
+            </div>
           </div>
         ))}
       </div>
@@ -857,7 +1054,7 @@ function AdminPage() {
 
         <input
           type="text"
-          placeholder="Episode Title"
+          placeholder="Episode Title (optional)"
           value={episodeTitle}
           onChange={(e) => setEpisodeTitle(e.target.value)}
           style={{
@@ -869,8 +1066,6 @@ function AdminPage() {
             outline: "none"
           }}
         />
-
-
 
         <input
           type="file"
@@ -895,6 +1090,18 @@ function AdminPage() {
             outline: "none"
           }}
         />
+
+        <div style={{ width: "100%", background: "#111", borderRadius: "6px", overflow: "hidden" }}>
+          <div
+            id="upload-progress-bar"
+            style={{
+              width: "0%",
+              height: "6px",
+              background: "#39ff14",
+              transition: "width 0.3s ease"
+            }}
+          />
+        </div>
 
         <button
           type="submit"
@@ -1032,6 +1239,35 @@ function Home() {
 
   const [continueWatching, setContinueWatching] = useState([])
   const [episodesList, setEpisodesList] = useState([])
+  // Trending anime state
+  const [trendingData, setTrendingData] = useState([])
+  useEffect(() => {
+    const loadTrending = async () => {
+      try {
+        const res = await fetch(`${API}/api/anime/trending`)
+
+        if (!res.ok) {
+          console.warn("Trending API failed")
+          setTrendingData([])
+          return
+        }
+
+        const data = await res.json()
+
+        if (Array.isArray(data)) {
+          setTrendingData(data)
+        } else {
+          console.warn("Invalid trending data")
+          setTrendingData([])
+        }
+      } catch (err) {
+        console.error("Trending fetch error", err)
+        setTrendingData([])
+      }
+    }
+
+    loadTrending()
+  }, [])
 
   useEffect(() => {
   const loadProgress = async () => {
@@ -1073,16 +1309,34 @@ function Home() {
 
 
   useEffect(() => {
-    fetch(`${API}/api/anime`)
-      .then(res => res.json())
-      .then(data => {
-        setAnimeList(data)
-        setLoading(false)
-      })
-      .catch(() => {
+    const loadAnime = async () => {
+      try {
+        const res = await fetch(`${API}/api/anime`)
+
+        if (!res.ok) {
+          console.warn("Anime API failed")
+          setAnimeList([])
+          setLoading(false)
+          return
+        }
+
+        const data = await res.json()
+
+        if (Array.isArray(data)) {
+          setAnimeList(data)
+        } else {
+          console.warn("Invalid anime data")
+          setAnimeList([])
+        }
+      } catch (err) {
+        console.error("Anime fetch error", err)
         setAnimeList([])
+      } finally {
         setLoading(false)
-      })
+      }
+    }
+
+    loadAnime()
   }, [])
 
   const allAnime = animeList
@@ -1097,6 +1351,7 @@ function Home() {
       return matchSearch && matchGenre
     })
   }, [allAnime, search, genreFilter])
+
 
   return (
     <div style={pageStyle}>
@@ -1481,6 +1736,105 @@ function Home() {
         </>
       )}
 
+      {/* 🔥 BRICK 103 - Because You Watched */}
+      {continueWatching.length > 0 && (
+        <>
+          <div style={container}>
+            <h2
+              style={{
+                paddingTop: "20px",
+                fontSize: "22px",
+                letterSpacing: "0.5px",
+                position: "relative",
+                display: "inline-block"
+              }}
+            >
+              Because You Watched
+            </h2>
+            <div
+              style={{
+                width: "60px",
+                height: "3px",
+                background: "linear-gradient(90deg, #39ff14, transparent)",
+                marginTop: "6px",
+                marginBottom: "10px"
+              }}
+            />
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: "20px",
+              overflowX: "auto",
+              padding: "20px 0"
+            }}
+          >
+            {animeList
+              .filter(a => {
+                // get watched anime IDs
+                const watchedAnimeIds = continueWatching.map(epId => {
+                  const ep = episodesList.find(e => e._id === epId)
+                  return ep?.anime?._id || ep?.anime
+                })
+
+                // don't show already watched anime
+                if (watchedAnimeIds.includes(a._id)) return false
+
+                // get watched anime objects
+                const watchedAnime = animeList.filter(x => watchedAnimeIds.includes(x._id))
+
+                // calculate similarity score
+                let score = 0
+
+                watchedAnime.forEach(w => {
+                  if (w.genre && a.genre) {
+                    const common = a.genre.filter(g => w.genre.includes(g)).length
+                    score += common * 3
+                  }
+                })
+
+                // small randomness to avoid same results always
+                score += Math.random()
+
+                // attach score for sorting
+                a._score = score
+
+                return true
+              })
+              .sort((a, b) => b._score - a._score)
+              .slice(0, 6)
+              .map(anime => (
+                <Link key={"rec-" + anime._id} to={`/anime/${anime._id}`} style={{ textDecoration: "none" }}>
+                  <div
+                    style={{
+                      width: "260px",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                      borderRadius: "12px",
+                      overflow: "hidden",
+                      transition: "all 0.3s ease",
+                      cursor: "pointer"
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "scale(1.04)"
+                      e.currentTarget.style.boxShadow = "0 15px 40px rgba(0,0,0,0.6)"
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "scale(1)"
+                      e.currentTarget.style.boxShadow = "none"
+                    }}
+                  >
+                    <img
+                      src={anime.coverImage || "https://cdn.myanimelist.net/images/anime/10/47347.jpg"}
+                      style={{ width: "100%", height: "320px", objectFit: "cover" }}
+                    />
+                  </div>
+                </Link>
+              ))}
+          </div>
+        </>
+      )}
+
       {/* BRICK 51 - Watch History */}
       {JSON.parse(localStorage.getItem("watch-history") || "[]").length > 0 && (
         <>
@@ -1658,6 +2012,7 @@ function Home() {
           }}
         />
       </div>
+
 
       <div style={{ position: "relative" }}>
         <div
@@ -1837,7 +2192,7 @@ function Home() {
             }, 200)
           }}
         >
-          {filteredAnime.map(anime => (
+          {(trendingData.length > 0 ? trendingData : filteredAnime).filter(a => a && a._id).map(anime => (
             <Link key={anime._id} to={`/anime/${anime._id}`} style={{ textDecoration: "none" }}>
               <div
                 style={{
@@ -1880,6 +2235,8 @@ function Home() {
               >
                 <div style={{ position: "relative", width: "100%", height: "360px" }}>
                   <img
+                    loading="lazy"
+                    decoding="async"
                     src={anime.coverImage || "https://cdn.myanimelist.net/images/anime/10/47347.jpg"}
                     alt={anime.title}
                     onError={(e) => {
@@ -2384,7 +2741,13 @@ function AnimePage() {
               style={{ width: "180px", height: "100px", position: "relative" }}
             >
               <img
-                src={ep.thumbnail || anime?.coverImage || "https://cdn.myanimelist.net/images/anime/10/47347.jpg"}
+                src={
+                  ep.thumbnail ||
+                  (ep.videoUrl && ep.videoUrl.includes("cloudinary")
+                    ? ep.videoUrl.replace("/upload/", "/upload/so_1/").replace(".mp4", ".jpg")
+                    : anime?.coverImage) ||
+                  "https://cdn.myanimelist.net/images/anime/10/47347.jpg"
+                }
                 style={{
                   width: "100%",
                   height: "100%",
